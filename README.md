@@ -37,7 +37,7 @@ secretProviders.vault.repositories=aws,<Other repositories, if any>
 secretProviders.vault.repositories.aws=org.wso2.carbon.securevault.aws.secret.repository.AWSSecretRepository
 secretProviders.vault.repositories.aws.properties.awsregion=<AWS_Region>
 secretProviders.vault.repositories.aws.properties.credentialProviders=<Credential_Provider_Type>
-secretRepositories.vault.properties.encryption=false
+secretRepositories.vault.properties.encryptionEnabled=false
 
 ```
 
@@ -58,7 +58,7 @@ secretRepositories=vault
 secretRepositories.vault.provider=org.wso2.carbon.securevault.aws.secret.repository.AWSSecretRepositoryProvider
 secretRepositories.vault.properties.awsregion=<AWS_Region>
 secretRepositories.vault.properties.credentialProviders=<Credential_Provider_Type>
-secretRepositories.vault.properties.encryption=<ENCRYPTION_ENABLED>
+secretRepositories.vault.properties.encryptionEnabled=<ENCRYPTION_ENABLED>
 ```
 
 Set appropriate values for `<AWS_REGION>`, `<Credential_Provider_Type>`, `<ENCRYPTION_ENABLED>`
@@ -233,7 +233,7 @@ secretProviders.vault.repositories=aws,<Other repositories if any>
 secretProviders.vault.repositories.aws=org.wso2.carbon.securevault.aws.secret.repository.AWSSecretRepository
 secretProviders.vault.repositories.aws.properties.awsregion=<AWS_Region>
 secretProviders.vault.repositories.aws.properties.credentialProviders=<Credential_Provider_Type>
-secretRepositories.vault.properties.encryption=false
+secretRepositories.vault.properties.encryptionEnabled=false
 ```
 
 #### Legacy method for using a single vault secret repository
@@ -255,7 +255,7 @@ secretRepositories=vault
 secretRepositories.vault.provider=org.wso2.carbon.securevault.aws.secret.repository.AWSSecretRepositoryProvider
 secretRepositories.vault.properties.awsregion=<AWS_Region>
 secretRepositories.vault.properties.credentialProviders=<Credential_Provider_Type>
-secretRepositories.vault.properties.encryption=<ENCRYPTION_ENABLED>
+secretRepositories.vault.properties.encryptionEnabled=<ENCRYPTION_ENABLED>
 ```
 
 `<AWS_REGION>`, `<Credential_Provider_Type>` and `<ENCRYPTION_ENABLED>` are same as in Setting up - Step 2.
