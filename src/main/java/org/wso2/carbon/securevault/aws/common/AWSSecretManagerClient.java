@@ -88,7 +88,6 @@ public class AWSSecretManagerClient {
     private static Region getAWSRegion(Properties properties) throws AWSVaultException {
 
         String regionString = AWSVaultUtils.getProperty(properties, AWS_REGION);
-
         Region region = Region.of(regionString);
         if (!Region.regions().contains(region)) {
             throw new AWSVaultException("AWS Region specified is invalid. Cannot build AWS Secrets Client!");

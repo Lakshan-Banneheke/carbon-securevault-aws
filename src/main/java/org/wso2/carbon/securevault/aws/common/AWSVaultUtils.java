@@ -35,11 +35,11 @@ import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.SECRET_RE
  */
 public class AWSVaultUtils {
 
+    private static final Log log = LogFactory.getLog(AWSVaultUtils.class);
+
     private AWSVaultUtils() {
 
     }
-
-    private static final Log log = LogFactory.getLog(AWSVaultUtils.class);
 
     /**
      * Util method to get the properties based on legacy or novel method used for defining the property
@@ -50,6 +50,7 @@ public class AWSVaultUtils {
      * @return Property value.
      */
     public static String getProperty(Properties properties, String propertyName) {
+
         String propKey = getPropKey(properties, propertyName);
         String property = properties.getProperty(propKey);
         if (StringUtils.isEmpty(property)) {
@@ -64,12 +65,13 @@ public class AWSVaultUtils {
      * configurations file. If a default value is passed to the method, it will return the default value instead of
      * throwing an error if the property is empty.
      *
-     * @param properties Configuration properties.
+     * @param properties   Configuration properties.
      * @param propertyName Name of the required property.
      * @param defaultValue Returns this value if property is empty.
      * @return Property value.
      */
     public static String getProperty(Properties properties, String propertyName, String defaultValue) {
+
         String propKey = getPropKey(properties, propertyName);
         String property = properties.getProperty(propKey);
         if (StringUtils.isEmpty(property)) {
@@ -81,7 +83,7 @@ public class AWSVaultUtils {
     /**
      * Util method to return the accurate property key based on novel or legacy configuration.
      *
-     * @param properties Configuration properties.
+     * @param properties   Configuration properties.
      * @param propertyName Name of the required property.
      * @return Property Key.
      */

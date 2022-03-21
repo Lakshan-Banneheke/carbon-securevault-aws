@@ -67,7 +67,6 @@ public class AWSSecretCallbackHandler extends AbstractSecretCallbackHandler {
         } else {
             singleSecretCallback.setSecret(keyStorePassword);
         }
-
     }
 
     /**
@@ -87,7 +86,6 @@ public class AWSSecretCallbackHandler extends AbstractSecretCallbackHandler {
         //Reading configurations from file.
         try (InputStream inputStream = new FileInputStream(CONFIG_FILE_PATH)) {
             properties.load(inputStream);
-
         } catch (IOException e) {
             throw new AWSSecretCallbackHandlerException("Error loading configurations from " + CONFIG_FILE_PATH, e);
         }
@@ -109,6 +107,7 @@ public class AWSSecretCallbackHandler extends AbstractSecretCallbackHandler {
         if (log.isDebugEnabled()) {
             log.debug("Retrieving root password from AWS Secret Manager.");
         }
+
         keyStorePassword = awsSecretRepository.getSecret(keyStoreAlias);
 
         if (sameKeyAndKeyStorePass) {
@@ -117,5 +116,4 @@ public class AWSSecretCallbackHandler extends AbstractSecretCallbackHandler {
             privateKeyPassword = awsSecretRepository.getSecret(privateKeyAlias);
         }
     }
-
 }

@@ -27,23 +27,16 @@ import java.io.File;
  */
 public class AWSVaultConstants {
 
-    private AWSVaultConstants() {
-
-    }
-
     public static final String CONFIG_FILE_PATH = CarbonUtils.getCarbonConfigDirPath() + File.separator
             + "security" + File.separator + "secret-conf.properties";
-
     public static final String IDENTITY_STORE_PASSWORD_ALIAS = "keystore.identity.store.alias";
     public static final String IDENTITY_KEY_PASSWORD_ALIAS = "keystore.identity.key.alias";
-
     public static final String COMMA = ",";
     public static final String DELIMITER = "#";
     public static final String REGEX = "[\r\n]";
     public static final String DEFAULT_ALGORITHM = "RSA";
     public static final String KEY_STORE = "keyStore";
     public static final String TRUSTED = "trusted";
-
     public static final String SECRET_PROVIDERS = "secretProviders";
     public static final String SECRET_REPOSITORIES = "secretRepositories";
     public static final String LEGACY_PROPERTIES_PATH = SECRET_REPOSITORIES + ".vault.properties.";
@@ -53,5 +46,7 @@ public class AWSVaultConstants {
     public static final String ENCRYPTION_ENABLED = "encryptionEnabled";
     public static final String ALGORITHM = "algorithm";
 
+    private AWSVaultConstants() {
 
+    }
 }

@@ -176,7 +176,6 @@ public class AWSSecretRepository implements SecretRepository {
     private void setEncryptionEnabled(Properties properties) {
 
         String encryptionEnabledPropertyString = AWSVaultUtils.getProperty(properties, ENCRYPTION_ENABLED);
-
         boolean encryptionEnabledProperty = Boolean.parseBoolean(encryptionEnabledPropertyString);
 
         if (encryptionEnabledProperty) {
@@ -269,9 +268,7 @@ public class AWSSecretRepository implements SecretRepository {
          */
         if (alias.contains(DELIMITER)) {
             if (StringUtils.countMatches(alias, DELIMITER) == 1) {
-
                 aliasComponents = alias.split(DELIMITER);
-
                 if (aliasComponents.length == 2) {
                     if (log.isDebugEnabled()) {
                         log.debug("Secret version found for " + aliasComponents[0].replaceAll(REGEX, "") + "." +
@@ -287,9 +284,7 @@ public class AWSSecretRepository implements SecretRepository {
                         log.debug("Secret version not found for " + aliasComponents[0].replaceAll(REGEX, "") +
                                 ". Retrieving latest version of secret.");
                     }
-
                 }
-
             } else {
                 log.error("Secret alias" + alias.replaceAll(REGEX, "") + " contains multiple instances of " +
                         "the delimiter. It should be of the format secretName#secretVersion. " +
@@ -303,5 +298,4 @@ public class AWSSecretRepository implements SecretRepository {
         }
         return aliasComponents;
     }
-
 }
