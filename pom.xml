@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2022, WSO2 Inc. (http://www.wso2.com).
+  ~
+  ~ WSO2 Inc. licenses this file to you under the Apache License,
+  ~ Version 2.0 (the "License"); you may not use this file except
+  ~ in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~ http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.wso2.carbon</groupId>
+    <artifactId>org.wso2.carbon.securevault.aws</artifactId>
+    <version>1.0</version>
+    <packaging>bundle</packaging>
+
+    <parent>
+        <groupId>org.wso2</groupId>
+        <artifactId>wso2</artifactId>
+        <version>1.4</version>
+    </parent>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-checkstyle-plugin</artifactId>
+                    <version>${maven.checkstyleplugin.version}</version>
+                    <executions>
+                        <execution>
+                            <id>validate</id>
+                            <phase>validate</phase>
+                            <configuration>
+                                <configLocation>
+                                    https://raw.githubusercontent.com/wso2/code-quality-tools/v1.3/checkstyle/checkstyle.xml
+                                </configLocation>
+                                <suppressionsLocation>
+                                    https://raw.githubusercontent.com/wso2/code-quality-tools/v1.3/checkstyle/suppressions.xml
+                                </suppressionsLocation>
+                                <encoding>UTF-8</encoding>
+                                <consoleOutput>true</consoleOutput>
+                                <failsOnError>true</failsOnError>
+                                <includeTestSourceDirectory>true</includeTestSourceDirectory>
+                            </configuration>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>com.github.spotbugs</groupId>
+                    <artifactId>spotbugs-maven-plugin</artifactId>
+                    <version>${spotbugs-maven-plugin.version}</version>
+                    <configuration>
+                        <effort>Max</effort>
+                        <threshold>Low</threshold>
+                        <failOnError>true</failOnError>
+                        <maxHeap>1024</maxHeap>
+                        <plugins>
+                            <plugin>
+                                <groupId>com.h3xstream.findsecbugs</groupId>
+                                <artifactId>findsecbugs-plugin</artifactId>
+                                <version>${findsecbugs-plugin.version}</version>
+                            </plugin>
+                        </plugins>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>analyze-compile</id>
+                            <phase>compile</phase>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+
+        <plugins>
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <version>5.1.4</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <instructions>
+                        <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
+                        <Export-Package>
+                            org.wso2.carbon.securevault.aws.secret.*
+                        </Export-Package>
+                        <Import-Package>
+                            org.apache.commons.lang;version="${commons-lang.wso2.osgi.version.range}",
+                            org.apache.commons.logging;version="${commons-logging.osgi.version.range}",
+
+                            org.apache.http;version="${httpcomponents-httpcore.osgi.version.range}",
+                            org.apache.http.auth;version="${httpcomponents-httpclient.osgi.version.range}",
+                            org.apache.http.client;version="${httpcomponents-httpclient.osgi.version.range}",
+                            org.apache.http.client.config;version="${httpcomponents-httpclient.osgi.version.range}",
+                            org.apache.http.client.methods;version="${httpcomponents-httpclient.osgi.version.range}",
+                            org.apache.http.client.protocol;version="${httpcomponents-httpclient.osgi.version.range}",
+                            org.apache.http.config;version="${httpcomponents-httpcore.osgi.version.range}",
+                            org.apache.http.conn;version="${httpcomponents-httpclient.osgi.version.range}",
+                            org.apache.http.conn.routing;version="${httpcomponents-httpclient.osgi.version.range}",
+                            org.apache.http.conn.socket;version="${httpcomponents-httpclient.osgi.version.range}",
+                            org.apache.http.conn.ssl;version="${httpcomponents-httpclient.osgi.version.range}",
+                            org.apache.http.entity;version="${httpcomponents-httpcore.osgi.version.range}",
+                            org.apache.http.impl.auth;version="${httpcomponents-httpclient.osgi.version.range}",
+                            org.apache.http.impl.client;version="${httpcomponents-httpclient.osgi.version.range}",
+                            org.apache.http.impl.conn;version="${httpcomponents-httpclient.osgi.version.range}",
+                            org.apache.http.params;version="${httpcomponents-httpcore.osgi.version.range}",
+                            org.apache.http.pool;version="${httpcomponents-httpcore.osgi.version.range}",
+                            org.apache.http.protocol;version="${httpcomponents-httpcore.osgi.version.range}",
+
+                            org.wso2.carbon.utils;version="${carbon.kernel.version.range}",
+                            org.wso2.securevault;version="${org.wso2.securevault.version.range}",
+                            org.wso2.securevault.definition;version="${org.wso2.securevault.version.range}",
+                            org.wso2.securevault.keystore;version="${org.wso2.securevault.version.range}",
+                            org.wso2.securevault.secret;version="${org.wso2.securevault.version.range}",
+                        </Import-Package>
+<!--                    Only the dependencies that are required by the AWS SDK which are not available in the IS are embedded.-->
+<!--                    They are embedded because these dependencies are only required within this extension.-->
+                        <Embed-Dependency>
+                            secretsmanager,
+                            aws-json-protocol,
+                            third-party-jackson-core,
+                            json-utils,
+                            protocol-core,
+                            sdk-core,
+                            profiles,
+                            reactive-streams,
+                            auth,
+                            eventstream,
+                            http-client-spi,
+                            regions,
+                            annotations,
+                            utils,
+                            aws-core,
+                            metrics-spi,
+                            apache-client,
+                            aws-crt-client,
+                            aws-crt,
+                            sts,
+                            aws-query-protocol,
+                        </Embed-Dependency>
+                        <Embed-Transitive>true</Embed-Transitive>
+                        <_fixupmessages>"Classes found in the wrong directory..."</_fixupmessages>
+                    </instructions>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+    <properties>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+
+        <carbon.kernel.version.range>[4.6.1,5.0.0)</carbon.kernel.version.range>
+
+        <org.wso2.securevault.version.range>[1.1.3,2.0.0)</org.wso2.securevault.version.range>
+
+        <software.amazon.awssdk.version>2.17.124</software.amazon.awssdk.version>
+        <software.amazon.awssdk.aws-crt-client.version>${software.amazon.awssdk.version}-PREVIEW</software.amazon.awssdk.aws-crt-client.version>
+
+        <commons-lang.wso2.osgi.version.range>[2.6.0,3.0.0)</commons-lang.wso2.osgi.version.range>
+        <commons-logging.osgi.version.range>[1.2.0,2.0.0)</commons-logging.osgi.version.range>
+        <httpcomponents-httpclient.osgi.version.range>[4.5.13.wso2v1,4.6.0.wso2v1)</httpcomponents-httpclient.osgi.version.range>
+        <httpcomponents-httpcore.osgi.version.range>[4.4.14.wso2v1,4.5.0.wso2v1)</httpcomponents-httpcore.osgi.version.range>
+
+        <spotbugs-annotations.version>4.5.3</spotbugs-annotations.version>
+
+        <maven.checkstyleplugin.version>3.1.0</maven.checkstyleplugin.version>
+        <findsecbugs-plugin.version>1.10.1</findsecbugs-plugin.version>
+        <spotbugs-maven-plugin.version>4.1.3</spotbugs-maven-plugin.version>
+
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>bom</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <type>pom</type>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.wso2.securevault</groupId>
+            <artifactId>org.wso2.securevault</artifactId>
+            <version>${org.wso2.securevault.version.range}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.carbon</groupId>
+            <artifactId>org.wso2.carbon.utils</artifactId>
+            <version>${carbon.kernel.version.range}</version>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>secretsmanager</artifactId>
+            <version>${software.amazon.awssdk.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>software.amazon.awssdk</groupId>
+                    <artifactId>netty-nio-client</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>aws-crt-client</artifactId>
+            <version>${software.amazon.awssdk.aws-crt-client.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>sts</artifactId>
+            <version>${software.amazon.awssdk.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>software.amazon.awssdk</groupId>
+                    <artifactId>netty-nio-client</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.github.spotbugs</groupId>
+            <artifactId>spotbugs-annotations</artifactId>
+            <version>${spotbugs-annotations.version}</version>
+            <scope>compile</scope>
+        </dependency>
+    </dependencies>
+</project>
