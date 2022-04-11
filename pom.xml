@@ -44,7 +44,7 @@
                     <instructions>
                         <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
                         <Export-Package>
-                            org.wso2.carbon.securevault.aws.secret.*,
+                            org.wso2.carbon.securevault.aws.*,
                         </Export-Package>
                         <Import-Package>
                             org.apache.commons.lang;version="${commons-lang.wso2.osgi.version.range}",
