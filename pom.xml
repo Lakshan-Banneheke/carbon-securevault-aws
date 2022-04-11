@@ -38,13 +38,13 @@
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
-                <version>5.1.4</version>
+                <version>${maven.bundle.plugin.version}</version>
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
                         <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
                         <Export-Package>
-                            org.wso2.carbon.securevault.aws.secret.*
+                            org.wso2.carbon.securevault.aws.secret.*,
                         </Export-Package>
                         <Import-Package>
                             org.apache.commons.lang;version="${commons-lang.wso2.osgi.version.range}",
@@ -127,6 +127,7 @@
         <spotbugs-annotations.version>4.5.3</spotbugs-annotations.version>
 
         <maven.findbugsplugin.version>3.0.5</maven.findbugsplugin.version>
+        <maven.bundle.plugin.version>5.1.4</maven.bundle.plugin.version>
 <!--        <maven.checkstyleplugin.version>3.1.0</maven.checkstyleplugin.version>-->
 <!--        <findsecbugs-plugin.version>1.10.1</findsecbugs-plugin.version>-->
 <!--        <spotbugs-maven-plugin.version>4.1.3</spotbugs-maven-plugin.version>-->
