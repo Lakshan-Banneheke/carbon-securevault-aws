@@ -105,6 +105,9 @@
                             org.wso2.carbon.securevault.aws.secret.*
                         </Export-Package>
                         <Import-Package>
+                            software.amazon.awssdk.*,
+
+                            org.reactivestreams;version=0.0.0,
                             org.apache.commons.lang;version="${commons-lang.wso2.osgi.version.range}",
                             org.apache.commons.logging;version="${commons-logging.osgi.version.range}",
 
@@ -135,30 +138,30 @@
                         </Import-Package>
 <!--                    Only the dependencies that are required by the AWS SDK which are not available in the IS are embedded.-->
 <!--                    They are embedded because these dependencies are only required within this extension.-->
-                        <Embed-Dependency>
-                            secretsmanager,
-                            aws-json-protocol,
-                            third-party-jackson-core,
-                            json-utils,
-                            protocol-core,
-                            sdk-core,
-                            profiles,
-                            reactive-streams,
-                            auth,
-                            eventstream,
-                            http-client-spi,
-                            regions,
-                            annotations,
-                            utils,
-                            aws-core,
-                            metrics-spi,
-                            apache-client,
-                            aws-crt-client,
-                            aws-crt,
-                            sts,
-                            aws-query-protocol,
-                        </Embed-Dependency>
-                        <Embed-Transitive>true</Embed-Transitive>
+<!--                        <Embed-Dependency>-->
+<!--                            secretsmanager,-->
+<!--                            aws-json-protocol,-->
+<!--                            third-party-jackson-core,-->
+<!--                            json-utils,-->
+<!--                            protocol-core,-->
+<!--                            sdk-core,-->
+<!--                            profiles,-->
+<!--                            reactive-streams,-->
+<!--                            auth,-->
+<!--                            eventstream,-->
+<!--                            http-client-spi,-->
+<!--                            regions,-->
+<!--                            annotations,-->
+<!--                            utils,-->
+<!--                            aws-core,-->
+<!--                            metrics-spi,-->
+<!--                            apache-client,-->
+<!--                            aws-crt-client,-->
+<!--                            aws-crt,-->
+<!--                            sts,-->
+<!--                            aws-query-protocol,-->
+<!--                        </Embed-Dependency>-->
+<!--                        <Embed-Transitive>true</Embed-Transitive>-->
                         <_fixupmessages>"Classes found in the wrong directory..."</_fixupmessages>
                     </instructions>
                 </configuration>
@@ -232,11 +235,11 @@
                 </exclusion>
             </exclusions>
         </dependency>
-        <dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>aws-crt-client</artifactId>
-            <version>${software.amazon.awssdk.aws-crt-client.version}</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>software.amazon.awssdk</groupId>-->
+<!--            <artifactId>aws-crt-client</artifactId>-->
+<!--            <version>${software.amazon.awssdk.aws-crt-client.version}</version>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>sts</artifactId>
@@ -254,5 +257,12 @@
             <version>${spotbugs-annotations.version}</version>
             <scope>compile</scope>
         </dependency>
+
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>apache-client</artifactId>
+            <version>${software.amazon.awssdk.version}</version>
+        </dependency>
+
     </dependencies>
 </project>
