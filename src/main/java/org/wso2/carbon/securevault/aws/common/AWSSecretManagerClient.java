@@ -29,6 +29,8 @@ import software.amazon.awssdk.auth.credentials.EnvironmentVariableCredentialsPro
 import software.amazon.awssdk.auth.credentials.InstanceProfileCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.WebIdentityTokenFileCredentialsProvider;
+import software.amazon.awssdk.http.SdkHttpClient;
+import software.amazon.awssdk.http.apache.ApacheHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 
@@ -67,9 +69,12 @@ public class AWSSecretManagerClient {
                 if (secretsClient == null) {
                     Region region = getAWSRegion(properties);
                     AwsCredentialsProvider credentialsProvider = getCredentialsProvider(properties);
+                    SdkHttpClient crtClient =  ApacheHttpClient.create();
+
                     secretsClient = SecretsManagerClient.builder()
                             .region(region)
                             .credentialsProvider(credentialsProvider)
+                            .httpClient(crtClient)
                             .build();
                     log.info("AWS Secrets Client created.");
                 }
