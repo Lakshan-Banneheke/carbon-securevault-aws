@@ -62,8 +62,8 @@ public class AWSVaultUtils {
 
     /**
      * Util method to get the properties based on legacy or novel method used for defining the property in the
-     * configurations file. If a default value is passed to the method, it will return the default value instead of
-     * throwing an error if the property is empty.
+     * secret-conf.properties file. If a default value is passed to the method, it will return the default value instead
+     * of throwing an error if the property is empty.
      *
      * @param properties   Configuration properties.
      * @param propertyName Name of the required property.

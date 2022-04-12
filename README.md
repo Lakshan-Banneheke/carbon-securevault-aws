@@ -12,6 +12,7 @@
 2. Build the OSGi bundle for the extension by running `mvn clean install`.
 3. Copy the `org.wso2.carbon.securevault.aws-1.0.jar` file from the target directory within the project and insert into
    the `<IS_HOME>/repository/components/dropins/` directory in the WSO2 Identity Server.
+4. Copy the `get-dependencies.sh` (Linux) or `get-dependencies.bat` (Windows) file depending on your OS from the `scripts` folder into the `<IS_HOME>/repository/components/lib/` directory and run the script to download all the dependant jars.
 
 ### Step 2: Configuring the Carbon Server to use the AWS extension for secrets management
 
