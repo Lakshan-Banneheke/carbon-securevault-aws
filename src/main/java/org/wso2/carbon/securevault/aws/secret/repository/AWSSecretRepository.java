@@ -155,15 +155,16 @@ public class AWSSecretRepository implements SecretRepository {
         GetSecretValueResponse valueResponse = secretsClient.getSecretValue(valueRequest);
         secret = valueResponse.secretString();
 
-        if (log.isDebugEnabled()) {
-            if (StringUtils.isEmpty(secret)) {
+        if (StringUtils.isEmpty(secret)) {
+            if (log.isDebugEnabled()) {
                 log.debug("Empty secret found for alias '" + alias.replaceAll(REGEX, "") +
                         "' returning itself.");
-                return alias;
-            } else {
-                log.debug("Secret " + secretName.replaceAll(REGEX, "") + " is retrieved.");
             }
+            return alias;
+        } else {
+            log.debug("Secret " + secretName.replaceAll(REGEX, "") + " is retrieved.");
         }
+
 
         return secret;
     }
