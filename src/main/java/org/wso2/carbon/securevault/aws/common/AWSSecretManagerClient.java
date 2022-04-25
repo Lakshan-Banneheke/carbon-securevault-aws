@@ -121,6 +121,21 @@ public class AWSSecretManagerClient {
             credentialProviderTypes = new String[]{credentialProvidersString};
         }
 
+        addCredentialProviders(awsCredentialsProviders, credentialProviderTypes);
+
+        if (log.isDebugEnabled()) {
+            log.debug("Custom credential provider chain has been created for AWS authentication.");
+        }
+        return AwsCredentialsProviderChain.builder().credentialsProviders(awsCredentialsProviders).build();
+    }
+
+    /**
+     * Util method to add create and add the AWS credential providers specified in the config file to the list.
+     * @param awsCredentialsProviders List of AWS credential providers.
+     * @param credentialProviderTypes List of AWS credential provider types specified in the config file.
+     */
+    private static void addCredentialProviders(List<AwsCredentialsProvider> awsCredentialsProviders,
+                                               String[] credentialProviderTypes) {
         //If new credential provider types are needed to be added, add a new mapping in the switch statement.
         for (String credentialType : credentialProviderTypes) {
             switch (credentialType) {
@@ -148,9 +163,5 @@ public class AWSSecretManagerClient {
                     throw new AWSVaultException("Credential provider type " + credentialType + " is invalid.");
             }
         }
-        if (log.isDebugEnabled()) {
-            log.debug("Custom credential provider chain has been created for AWS authentication.");
-        }
-        return AwsCredentialsProviderChain.builder().credentialsProviders(awsCredentialsProviders).build();
     }
 }

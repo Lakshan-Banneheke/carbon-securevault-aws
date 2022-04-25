@@ -112,7 +112,6 @@ public class AWSSecretRepository implements SecretRepository {
                     StandardCharsets.UTF_8);
         }
         return secret;
-
     }
 
     /**
@@ -123,11 +122,10 @@ public class AWSSecretRepository implements SecretRepository {
     @Override
     public String getEncryptedData(String alias) {
 
-        if (encryptionEnabled) {
-            return retrieveSecretFromAWS(alias);
-        } else {
+        if (!encryptionEnabled) {
             throw new UnsupportedOperationException();
         }
+        return retrieveSecretFromAWS(alias);
     }
 
     /**
@@ -142,8 +140,7 @@ public class AWSSecretRepository implements SecretRepository {
         String[] aliasComponents = parseSecretReference(alias);
         String secretName = aliasComponents[0];
         String secretVersion = aliasComponents[1];
-        //TODO REMOVE
-        log.debug("Retrieving secret " + secretName.replaceAll(REGEX, "") + " from Vault");
+
         GetSecretValueRequest valueRequest = GetSecretValueRequest.builder()
                 .secretId(secretName)
                 .versionId(secretVersion)
@@ -153,9 +150,64 @@ public class AWSSecretRepository implements SecretRepository {
         secret = valueResponse.secretString();
 
         if (log.isDebugEnabled()) {
-            log.debug("Secret " + secretName.replaceAll(REGEX, "") + " is retrieved.");
+            log.debug("Secret " + secretName.replaceAll(REGEX, "") + " is retrieved from Vault.");
         }
         return secret;
+    }
+
+    /**
+     * Util method to get the secret name and version.
+     * If no secret version is set, it will return null for versionID,
+     * which will return the latest version of the secret from the AWS Secrets Manager.
+     *
+     * @param alias The alias of the secret. It contains both the name and version of the secret being retrieved,
+     *              separated by a "#" delimiter. The version is optional and can be left blank.
+     * @return An array with the secret name and the secret version.
+     */
+    private String[] parseSecretReference(String alias) {
+
+        String[] aliasComponents = {alias, null};
+
+        if (StringUtils.isNotEmpty(alias)) {
+            if (alias.contains(DELIMITER)) {
+                if (StringUtils.countMatches(alias, DELIMITER) == 1) {
+                    aliasComponents = alias.split(DELIMITER, -1);
+                    if (StringUtils.isEmpty(aliasComponents[0])) {
+                        throw new AWSVaultException("Secret name cannot be empty.");
+                    }
+                    if (StringUtils.isEmpty(aliasComponents[1])) {
+                        aliasComponents[1] = null;
+                    }
+                } else {
+                    throw new AWSVaultException("Secret with alias " + alias.replaceAll(REGEX, "") +
+                            " contains multiple instances of the delimiter. " +
+                            "It should be of the format secretName#secretVersion. It should contain only one hashtag.");
+                }
+            }
+        } else {
+            throw new AWSVaultException("Secret name cannot be empty.");
+        }
+
+        debugLogSecretVersionStatus(aliasComponents);
+        return aliasComponents;
+    }
+
+    /**
+     * Util method to log whether secret version is specified or not.
+     *
+     * @param aliasComponents Array consisting of the secret name and secret version.
+     */
+    private void debugLogSecretVersionStatus(String[] aliasComponents) {
+
+        if (log.isDebugEnabled()) {
+            if (StringUtils.isNotEmpty(aliasComponents[1])) {
+                log.debug("Secret version found for " + aliasComponents[0].replaceAll(REGEX, "") + "." +
+                        " Retrieving the specified version of secret.");
+            } else {
+                log.debug("Secret version not found for " + aliasComponents[0].replaceAll(REGEX, "") +
+                        ". Retrieving latest version of secret.");
+            }
+        }
     }
 
     /**
@@ -173,13 +225,13 @@ public class AWSSecretRepository implements SecretRepository {
                 throw new AWSVaultException("Key Store has not been initialized and therefore unable to support " +
                         "encrypted secrets. Encrypted secrets are not supported in the novel configuration. " +
                         "Either change the configuration to legacy method or set encryptionEnabled property as false.");
-            } else {
-                if (log.isDebugEnabled()) {
-                    log.debug("Encryption is enabled in AWS Secure Vault.");
-                }
-                encryptionEnabled = true;
-                initDecryptionProvider(properties);
             }
+            if (log.isDebugEnabled()) {
+                log.debug("Encryption is enabled in AWS Secure Vault.");
+            }
+            encryptionEnabled = true;
+            initDecryptionProvider(properties);
+
         } else {
             encryptionEnabled = false;
             if (log.isDebugEnabled()) {
@@ -238,60 +290,5 @@ public class AWSSecretRepository implements SecretRepository {
     public void setParent(SecretRepository parent) {
 
         this.parentRepository = parent;
-    }
-
-    /**
-     * Util method to get the secret name and version.
-     * If no secret version is set, it will return null for versionID,
-     * which will return the latest version of the secret from the AWS Secrets Manager.
-     *
-     * @param alias The alias of the secret. It contains both the name and version of the secret being retrieved,
-     *              separated by a "#" delimiter. The version is optional and can be left blank.
-     * @return An array with the secret name and the secret version.
-     */
-    private String[] parseSecretReference(String alias) {
-
-        String[] aliasComponents = {alias, null};
-
-        if (StringUtils.isNotEmpty(alias)) {
-            if (alias.contains(DELIMITER)) {
-                if (StringUtils.countMatches(alias, DELIMITER) == 1) {
-                    aliasComponents = alias.split(DELIMITER, -1);
-                    if (StringUtils.isEmpty(aliasComponents[0])) {
-                        throw new AWSVaultException("Secret name cannot be empty.");
-                    }
-                    if (StringUtils.isEmpty(aliasComponents[1])) {
-                        aliasComponents[1] = null;
-                    }
-                } else {
-                    throw new AWSVaultException("Secret with alias " + alias.replaceAll(REGEX, "") +
-                            " contains multiple instances of the delimiter. " +
-                            "It should be of the format secretName#secretVersion. It should contain only one hashtag.");
-                }
-            }
-        } else {
-            throw new AWSVaultException("Secret name cannot be empty.");
-        }
-
-        debugLogSecretVersionStatus(aliasComponents);
-        return aliasComponents;
-    }
-
-    /**
-     * Util method to log whether secret version is specified or not.
-     *
-     * @param aliasComponents Array consisting of the secret name and secret version
-     */
-    private void debugLogSecretVersionStatus(String[] aliasComponents) {
-
-        if (log.isDebugEnabled()) {
-            if (StringUtils.isNotEmpty(aliasComponents[1])) {
-                log.debug("Secret version found for " + aliasComponents[0].replaceAll(REGEX, "") + "." +
-                        " Retrieving the specified version of secret.");
-            } else {
-                log.debug("Secret version not found for " + aliasComponents[0].replaceAll(REGEX, "") +
-                        ". Retrieving latest version of secret.");
-            }
-        }
     }
 }
