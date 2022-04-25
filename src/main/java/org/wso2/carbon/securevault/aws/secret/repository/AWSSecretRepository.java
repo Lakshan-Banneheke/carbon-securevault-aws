@@ -104,19 +104,15 @@ public class AWSSecretRepository implements SecretRepository {
     @Override
     public String getSecret(String alias) {
 
-        if (StringUtils.isEmpty(alias)) {
-            return alias;
-        }
-
         String secret = retrieveSecretFromAWS(alias);
 
         if (encryptionEnabled) {
             //Decrypting the secret.
             return new String(baseCipher.decrypt(secret.trim().getBytes(StandardCharsets.UTF_8)),
                     StandardCharsets.UTF_8);
-        } else {
-            return secret;
         }
+        return secret;
+
     }
 
     /**
@@ -143,10 +139,11 @@ public class AWSSecretRepository implements SecretRepository {
 
         String secret;
 
-        String[] versionDetails = getSecretVersion(alias);
-        String secretName = versionDetails[0];
-        String secretVersion = versionDetails[1];
-
+        String[] aliasComponents = parseSecretReference(alias);
+        String secretName = aliasComponents[0];
+        String secretVersion = aliasComponents[1];
+        //TODO REMOVE
+        log.debug("Retrieving secret " + secretName.replaceAll(REGEX, "") + " from Vault");
         GetSecretValueRequest valueRequest = GetSecretValueRequest.builder()
                 .secretId(secretName)
                 .versionId(secretVersion)
@@ -155,17 +152,9 @@ public class AWSSecretRepository implements SecretRepository {
         GetSecretValueResponse valueResponse = secretsClient.getSecretValue(valueRequest);
         secret = valueResponse.secretString();
 
-        if (StringUtils.isEmpty(secret)) {
-            if (log.isDebugEnabled()) {
-                log.debug("Empty secret found for alias '" + alias.replaceAll(REGEX, "") +
-                        "' returning itself.");
-            }
-            return alias;
-        } else {
+        if (log.isDebugEnabled()) {
             log.debug("Secret " + secretName.replaceAll(REGEX, "") + " is retrieved.");
         }
-
-
         return secret;
     }
 
@@ -256,47 +245,53 @@ public class AWSSecretRepository implements SecretRepository {
      * If no secret version is set, it will return null for versionID,
      * which will return the latest version of the secret from the AWS Secrets Manager.
      *
-     * @param alias The alias of the secret.
+     * @param alias The alias of the secret. It contains both the name and version of the secret being retrieved,
+     *              separated by a "#" delimiter. The version is optional and can be left blank.
      * @return An array with the secret name and the secret version.
      */
-    private String[] getSecretVersion(String alias) {
+    private String[] parseSecretReference(String alias) {
 
         String[] aliasComponents = {alias, null};
 
-        /*
-         * Alias contains both the name and version of the secret being retrieved, separated by a "#" delimiter.
-         * The version is optional and can be left blank.
-         */
-        if (alias.contains(DELIMITER)) {
-            if (StringUtils.countMatches(alias, DELIMITER) == 1) {
-                aliasComponents = alias.split(DELIMITER);
-                if (aliasComponents.length == 2) {
-                    if (log.isDebugEnabled()) {
-                        log.debug("Secret version found for " + aliasComponents[0].replaceAll(REGEX, "") + "." +
-                                " Retrieving the specified version of secret.");
+        if (StringUtils.isNotEmpty(alias)) {
+            if (alias.contains(DELIMITER)) {
+                if (StringUtils.countMatches(alias, DELIMITER) == 1) {
+                    aliasComponents = alias.split(DELIMITER, -1);
+                    if (StringUtils.isEmpty(aliasComponents[0])) {
+                        throw new AWSVaultException("Secret name cannot be empty.");
                     }
-                } else if (aliasComponents.length == 0) {
-                    aliasComponents = new String[]{alias, null};
-                    log.error("Secret alias has not been specified. " +
-                            "Only the hashtag delimiter has been given as the alias");
+                    if (StringUtils.isEmpty(aliasComponents[1])) {
+                        aliasComponents[1] = null;
+                    }
                 } else {
-                    aliasComponents = new String[]{aliasComponents[0], null};
-                    if (log.isDebugEnabled()) {
-                        log.debug("Secret version not found for " + aliasComponents[0].replaceAll(REGEX, "") +
-                                ". Retrieving latest version of secret.");
-                    }
+                    throw new AWSVaultException("Secret with alias " + alias.replaceAll(REGEX, "") +
+                            " contains multiple instances of the delimiter. " +
+                            "It should be of the format secretName#secretVersion. It should contain only one hashtag.");
                 }
-            } else {
-                log.error("Secret alias" + alias.replaceAll(REGEX, "") + " contains multiple instances of " +
-                        "the delimiter. It should be of the format secretName#secretVersion. " +
-                        "It should contain only one hashtag.");
             }
         } else {
-            if (log.isDebugEnabled()) {
+            throw new AWSVaultException("Secret name cannot be empty.");
+        }
+
+        debugLogSecretVersionStatus(aliasComponents);
+        return aliasComponents;
+    }
+
+    /**
+     * Util method to log whether secret version is specified or not.
+     *
+     * @param aliasComponents Array consisting of the secret name and secret version
+     */
+    private void debugLogSecretVersionStatus(String[] aliasComponents) {
+
+        if (log.isDebugEnabled()) {
+            if (StringUtils.isNotEmpty(aliasComponents[1])) {
+                log.debug("Secret version found for " + aliasComponents[0].replaceAll(REGEX, "") + "." +
+                        " Retrieving the specified version of secret.");
+            } else {
                 log.debug("Secret version not found for " + aliasComponents[0].replaceAll(REGEX, "") +
                         ". Retrieving latest version of secret.");
             }
         }
-        return aliasComponents;
     }
 }
