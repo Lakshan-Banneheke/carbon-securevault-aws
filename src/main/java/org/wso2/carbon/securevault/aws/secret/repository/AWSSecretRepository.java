@@ -30,7 +30,6 @@ import org.wso2.securevault.DecryptionProvider;
 import org.wso2.securevault.EncodingType;
 import org.wso2.securevault.definition.CipherInformation;
 import org.wso2.securevault.keystore.IdentityKeyStoreWrapper;
-import org.wso2.securevault.keystore.KeyStoreWrapper;
 import org.wso2.securevault.keystore.TrustKeyStoreWrapper;
 import org.wso2.securevault.secret.SecretRepository;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
@@ -46,8 +45,6 @@ import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.CRLF_SANI
 import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.DEFAULT_ALGORITHM;
 import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.ENCRYPTION_ENABLED;
 import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.ID_AWS_SECRET_REPOSITORY_FOR_ROOT_PASSWORD;
-import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.KEY_STORE;
-import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.TRUSTED;
 import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.VERSION_DELIMITER;
 
 /**
@@ -241,7 +238,7 @@ public class AWSSecretRepository implements SecretRepository {
         boolean encryptionEnabledProperty = Boolean.parseBoolean(encryptionEnabledPropertyString);
 
         if (encryptionEnabledProperty) {
-            if (identityKeyStoreWrapper == null && trustKeyStoreWrapper == null) {
+            if (identityKeyStoreWrapper == null) {
                 throw new AWSVaultException("Key Store has not been initialized and therefore unable to support " +
                         "encrypted secrets. Encrypted secrets are not supported in the novel configuration. " +
                         "Either change the configuration to legacy method or set encryptionEnabled property as false.");
@@ -269,23 +266,12 @@ public class AWSSecretRepository implements SecretRepository {
         // If an algorithm is not specified in the properties file, RSA algorithm will be used by default.
         String algorithm = AWSVaultUtils.getProperty(properties, ALGORITHM, DEFAULT_ALGORITHM);
 
-        String keyStore = AWSVaultUtils.getProperty(properties, KEY_STORE, null);
-
-        KeyStoreWrapper keyStoreWrapper;
-        /* If keyStore property in the properties file is set to 'trusted', it will use the trustKeyStoreWrapper.
-        If not, it will use the identityKeyStoreWrapper. */
-        if (TRUSTED.equals(keyStore)) {
-            keyStoreWrapper = trustKeyStoreWrapper;
-        } else {
-            keyStoreWrapper = identityKeyStoreWrapper;
-        }
-
         //Creates a cipherInformation
         CipherInformation cipherInformation = new CipherInformation();
         cipherInformation.setAlgorithm(algorithm);
         cipherInformation.setCipherOperationMode(CipherOperationMode.DECRYPT);
         cipherInformation.setInType(EncodingType.BASE64);
-        baseCipher = CipherFactory.createCipher(cipherInformation, keyStoreWrapper);
+        baseCipher = CipherFactory.createCipher(cipherInformation, identityKeyStoreWrapper);
         if (log.isDebugEnabled()) {
             log.debug("Cipher has been created for decryption in AWS Secret Repository.");
         }

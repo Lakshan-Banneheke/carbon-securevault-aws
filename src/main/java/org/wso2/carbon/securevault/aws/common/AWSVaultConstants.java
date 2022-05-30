@@ -35,8 +35,6 @@ public class AWSVaultConstants {
     public static final String VERSION_DELIMITER = "#";
     public static final String CRLF_SANITATION_REGEX = "[\r\n]";
     public static final String DEFAULT_ALGORITHM = "RSA";
-    public static final String KEY_STORE = "keyStore";
-    public static final String TRUSTED = "trusted";
     public static final String SECRET_PROVIDERS = "secretProviders";
     public static final String SECRET_REPOSITORIES = "secretRepositories";
     public static final String LEGACY_PROPERTIES_PATH = SECRET_REPOSITORIES + ".vault.properties.";
