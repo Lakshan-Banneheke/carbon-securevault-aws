@@ -18,13 +18,19 @@
 
 package org.wso2.carbon.securevault.aws.common;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.wso2.carbon.securevault.aws.exception.AWSSecretCallbackHandlerException;
 import org.wso2.carbon.securevault.aws.exception.AWSVaultException;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Properties;
 
+import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.CONFIG_FILE_PATH;
 import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.LEGACY_PROPERTIES_PATH;
 import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.NOVEL_PROPERTIES_PATH;
 import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.REGEX;
@@ -103,5 +109,28 @@ public class AWSVaultUtils {
             propKey = LEGACY_PROPERTIES_PATH + propertyName;
         }
         return propKey;
+    }
+
+    /**
+     * Util method to read the 'secret-conf.properties' file and create a properties object from its content.
+     *
+     * @return Properties properties.
+     */
+    @SuppressFBWarnings("PATH_TRAVERSAL_IN")
+    public static Properties readPropertiesFile() {
+
+        if (log.isDebugEnabled()) {
+            log.debug("Reading configuration properties from file.");
+        }
+
+        Properties properties = new Properties();
+
+        //Reading configurations from file.
+        try (InputStream inputStream = new FileInputStream(CONFIG_FILE_PATH)) {
+            properties.load(inputStream);
+        } catch (IOException e) {
+            throw new AWSSecretCallbackHandlerException("Error loading configurations from " + CONFIG_FILE_PATH, e);
+        }
+        return properties;
     }
 }
