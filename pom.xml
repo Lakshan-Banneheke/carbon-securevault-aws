@@ -44,14 +44,12 @@
                     <instructions>
                         <Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
                         <Export-Package>
-                            org.wso2.carbon.securevault.aws.*,
+                            org.wso2.carbon.securevault.aws.*
                         </Export-Package>
                         <Import-Package>
-                            software.amazon.awssdk.*,
-                            org.reactivestreams;version=0.0.0,
-
                             org.apache.commons.lang;version="${commons-lang.wso2.osgi.version.range}",
                             org.apache.commons.logging;version="${commons-logging.osgi.version.range}",
+
                             org.apache.http;version="${httpcomponents-httpcore.osgi.version.range}",
                             org.apache.http.auth;version="${httpcomponents-httpclient.osgi.version.range}",
                             org.apache.http.client;version="${httpcomponents-httpclient.osgi.version.range}",
@@ -77,6 +75,32 @@
                             org.wso2.securevault.keystore;version="${org.wso2.securevault.version.range}",
                             org.wso2.securevault.secret;version="${org.wso2.securevault.version.range}",
                         </Import-Package>
+                        <!--                    Only the dependencies that are required by the AWS SDK which are not available in the IS are embedded.-->
+                        <!--                    They are embedded because these dependencies are only required within this extension.-->
+                        <Embed-Dependency>
+                            secretsmanager,
+                            aws-json-protocol,
+                            third-party-jackson-core,
+                            json-utils,
+                            protocol-core,
+                            sdk-core,
+                            profiles,
+                            reactive-streams,
+                            auth,
+                            eventstream,
+                            http-client-spi,
+                            regions,
+                            annotations,
+                            utils,
+                            aws-core,
+                            metrics-spi,
+                            apache-client,
+                            aws-crt-client,
+                            aws-crt,
+                            sts,
+                            aws-query-protocol,
+                        </Embed-Dependency>
+                        <Embed-Transitive>true</Embed-Transitive>
                         <_fixupmessages>"Classes found in the wrong directory..."</_fixupmessages>
                     </instructions>
                 </configuration>
