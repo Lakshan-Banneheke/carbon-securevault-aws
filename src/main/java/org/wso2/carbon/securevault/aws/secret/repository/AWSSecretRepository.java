@@ -36,17 +36,19 @@ import org.wso2.securevault.secret.SecretRepository;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
+import software.amazon.awssdk.services.secretsmanager.model.ResourceNotFoundException;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 
 import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.ALGORITHM;
+import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.CRLF_SANITATION_REGEX;
 import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.DEFAULT_ALGORITHM;
-import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.DELIMITER;
 import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.ENCRYPTION_ENABLED;
+import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.ID_AWS_SECRET_REPOSITORY_FOR_ROOT_PASSWORD;
 import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.KEY_STORE;
-import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.REGEX;
 import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.TRUSTED;
+import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.VERSION_DELIMITER;
 
 /**
  * AWS secret repository. This class is to facilitate the use of AWS Secrets Manager as an external vault
@@ -84,7 +86,7 @@ public class AWSSecretRepository implements SecretRepository {
     @Override
     public void init(Properties properties, String id) {
 
-        if (StringUtils.equals(id, "AWSSecretRepositoryForRootPassword")) {
+        if (StringUtils.equals(id, ID_AWS_SECRET_REPOSITORY_FOR_ROOT_PASSWORD)) {
             log.info("Initializing AWS Secure Vault for root password retrieval.");
             encryptionEnabled = false;
         } else {
@@ -98,19 +100,33 @@ public class AWSSecretRepository implements SecretRepository {
      * Get Secret from AWS Secrets Manager.
      *
      * @param alias Name and version of the secret being retrieved separated by a "#". The version is optional.
-     * @return Secret retrieved from the AWS Secrets Manager if there is any, otherwise, alias itself.
+     * @return Secret retrieved from the AWS Secrets Manager if there is any, otherwise, an empty string.
      * @see SecretRepository
      */
     @Override
     public String getSecret(String alias) {
 
-        String secret = retrieveSecretFromAWS(alias);
-
-        if (encryptionEnabled) {
-            //Decrypting the secret.
-            return new String(baseCipher.decrypt(secret.trim().getBytes(StandardCharsets.UTF_8)),
-                    StandardCharsets.UTF_8);
+        /*
+        If an error occurred during secret retrieval such as the secret not being available or errors in parsing the
+        secret reference, an empty string would be returned from this method. If a runtime exception is thrown instead,
+        the Identity Server will repeatedly attempt to retrieve the secret in a loop for secrets such as
+        keystore password, truststore password, etc.
+        */
+        String secret = "";
+        try {
+            secret = retrieveSecretFromAWS(alias);
+            //Decrypting the secret is done only if encryption is enabled. If not, the retrieved secret is returned.
+            if (encryptionEnabled) {
+                secret = new String(baseCipher.decrypt(secret.trim().getBytes(StandardCharsets.UTF_8)),
+                        StandardCharsets.UTF_8);
+            }
+        } catch (ResourceNotFoundException e) {
+            log.error("Failed to retrieve secret " + alias.replaceAll(CRLF_SANITATION_REGEX, "")
+                    + " from AWS Secrets Manager. Returning empty string.", e);
+        } catch (AWSVaultException e) {
+            log.error(e.getMessage().replaceAll(CRLF_SANITATION_REGEX, ""), e);
         }
+
         return secret;
     }
 
@@ -135,23 +151,24 @@ public class AWSSecretRepository implements SecretRepository {
      */
     private String retrieveSecretFromAWS(String alias) {
 
-        String secret;
-
-        String[] aliasComponents = parseSecretReference(alias);
-        String secretName = aliasComponents[0];
-        String secretVersion = aliasComponents[1];
+        SecretReference secretReference = parseSecretReference(alias);
 
         GetSecretValueRequest valueRequest = GetSecretValueRequest.builder()
-                .secretId(secretName)
-                .versionId(secretVersion)
+                .secretId(secretReference.name)
+                .versionId(secretReference.version)
                 .build();
-
         GetSecretValueResponse valueResponse = secretsClient.getSecretValue(valueRequest);
-        secret = valueResponse.secretString();
+        String secret = valueResponse.secretString();
 
-        if (log.isDebugEnabled()) {
-            log.debug("Secret " + secretName.replaceAll(REGEX, "") + " is retrieved from Vault.");
+        if (StringUtils.isEmpty(secret)) {
+            throw new AWSVaultException("Secret " + secretReference.name.replaceAll(CRLF_SANITATION_REGEX, "")
+                    + "is null or empty. Returning empty string");
         }
+        if (log.isDebugEnabled()) {
+            log.debug("Secret " + secretReference.name.replaceAll(CRLF_SANITATION_REGEX, "") +
+                    " is retrieved from Vault.");
+        }
+
         return secret;
     }
 
@@ -164,47 +181,50 @@ public class AWSSecretRepository implements SecretRepository {
      *              separated by a "#" delimiter. The version is optional and can be left blank.
      * @return An array with the secret name and the secret version.
      */
-    private String[] parseSecretReference(String alias) {
+    private SecretReference parseSecretReference(String alias) {
 
-        String[] aliasComponents = {alias, null};
+        SecretReference secretReference = new SecretReference(alias, null);
 
         if (StringUtils.isNotEmpty(alias)) {
-            if (alias.contains(DELIMITER)) {
-                if (StringUtils.countMatches(alias, DELIMITER) == 1) {
-                    aliasComponents = alias.split(DELIMITER, -1);
+            if (alias.contains(VERSION_DELIMITER)) {
+                if (StringUtils.countMatches(alias, VERSION_DELIMITER) == 1) {
+                    String[] aliasComponents = alias.split(VERSION_DELIMITER, -1);
                     if (StringUtils.isEmpty(aliasComponents[0])) {
-                        throw new AWSVaultException("Secret name cannot be empty.");
+                        throw new AWSVaultException("Secret name cannot be empty. Returning empty string.");
                     }
                     if (StringUtils.isEmpty(aliasComponents[1])) {
                         aliasComponents[1] = null;
                     }
+                    secretReference.name = aliasComponents[0];
+                    secretReference.version = aliasComponents[1];
                 } else {
-                    throw new AWSVaultException("Secret with alias " + alias.replaceAll(REGEX, "") +
-                            " contains multiple instances of the delimiter. " +
-                            "It should be of the format secretName#secretVersion. It should contain only one hashtag.");
+                    throw new AWSVaultException("Secret with alias " + alias.replaceAll(CRLF_SANITATION_REGEX, "") +
+                            " contains multiple instances of the delimiter. It should be of the format " +
+                            "secretName#secretVersion. It should contain only one hashtag. Returning empty string."
+                    );
                 }
             }
         } else {
-            throw new AWSVaultException("Secret name cannot be empty.");
+            throw new AWSVaultException("Secret name cannot be empty. Returning empty string.");
         }
 
-        debugLogSecretVersionStatus(aliasComponents);
-        return aliasComponents;
+        debugLogSecretVersionStatus(secretReference);
+        return secretReference;
     }
 
     /**
      * Util method to log whether secret version is specified or not.
      *
-     * @param aliasComponents Array consisting of the secret name and secret version.
+     * @param secretReference Secret Reference object consisting of the secret name and secret version.
      */
-    private void debugLogSecretVersionStatus(String[] aliasComponents) {
+    private void debugLogSecretVersionStatus(SecretReference secretReference) {
 
         if (log.isDebugEnabled()) {
-            if (StringUtils.isNotEmpty(aliasComponents[1])) {
-                log.debug("Secret version found for " + aliasComponents[0].replaceAll(REGEX, "") + "." +
-                        " Retrieving the specified version of secret.");
+            if (StringUtils.isNotEmpty(secretReference.version)) {
+                log.debug("Secret version found for " + secretReference.name.replaceAll(CRLF_SANITATION_REGEX, "")
+                        + ". Retrieving the specified version of secret.");
             } else {
-                log.debug("Secret version not found for " + aliasComponents[0].replaceAll(REGEX, "") +
+                log.debug("Secret version not found for " + secretReference.name.replaceAll(CRLF_SANITATION_REGEX, "") +
                         ". Retrieving latest version of secret.");
             }
         }
@@ -231,7 +251,6 @@ public class AWSSecretRepository implements SecretRepository {
             }
             encryptionEnabled = true;
             initDecryptionProvider(properties);
-
         } else {
             encryptionEnabled = false;
             if (log.isDebugEnabled()) {
@@ -247,12 +266,14 @@ public class AWSSecretRepository implements SecretRepository {
      */
     private void initDecryptionProvider(Properties properties) {
 
-        //Load algorithm
+        // If an algorithm is not specified in the properties file, RSA algorithm will be used by default.
         String algorithm = AWSVaultUtils.getProperty(properties, ALGORITHM, DEFAULT_ALGORITHM);
 
-        //Load keyStore
         String keyStore = AWSVaultUtils.getProperty(properties, KEY_STORE, null);
+
         KeyStoreWrapper keyStoreWrapper;
+        /* If keyStore property in the properties file is set to 'trusted', it will use the trustKeyStoreWrapper.
+        If not, it will use the identityKeyStoreWrapper. */
         if (TRUSTED.equals(keyStore)) {
             keyStoreWrapper = trustKeyStoreWrapper;
         } else {
@@ -290,5 +311,20 @@ public class AWSSecretRepository implements SecretRepository {
     public void setParent(SecretRepository parent) {
 
         this.parentRepository = parent;
+    }
+
+    /**
+     * Class to create a Secret Reference object which contains the name and version of a secret.
+     */
+    private static class SecretReference {
+
+        private String name;
+        private String version;
+
+        SecretReference(String name, String version) {
+
+            this.name = name;
+            this.version = version;
+        }
     }
 }

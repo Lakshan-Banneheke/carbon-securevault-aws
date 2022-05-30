@@ -32,8 +32,8 @@ public class AWSVaultConstants {
     public static final String IDENTITY_STORE_PASSWORD_ALIAS = "keystore.identity.store.alias";
     public static final String IDENTITY_KEY_PASSWORD_ALIAS = "keystore.identity.key.alias";
     public static final String COMMA = ",";
-    public static final String DELIMITER = "#";
-    public static final String REGEX = "[\r\n]";
+    public static final String VERSION_DELIMITER = "#";
+    public static final String CRLF_SANITATION_REGEX = "[\r\n]";
     public static final String DEFAULT_ALGORITHM = "RSA";
     public static final String KEY_STORE = "keyStore";
     public static final String TRUSTED = "trusted";
@@ -45,6 +45,7 @@ public class AWSVaultConstants {
     public static final String AWS_REGION = "awsregion";
     public static final String ENCRYPTION_ENABLED = "encryptionEnabled";
     public static final String ALGORITHM = "algorithm";
+    public static final String ID_AWS_SECRET_REPOSITORY_FOR_ROOT_PASSWORD = "AWSSecretRepositoryForRootPassword";
 
     private AWSVaultConstants() {
 

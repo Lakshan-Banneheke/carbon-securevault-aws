@@ -18,22 +18,16 @@
 
 package org.wso2.carbon.securevault.aws.common;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.wso2.carbon.securevault.aws.exception.AWSSecretCallbackHandlerException;
 import org.wso2.carbon.securevault.aws.exception.AWSVaultException;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.Properties;
 
-import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.CONFIG_FILE_PATH;
+import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.CRLF_SANITATION_REGEX;
 import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.LEGACY_PROPERTIES_PATH;
 import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.NOVEL_PROPERTIES_PATH;
-import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.REGEX;
 import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.SECRET_REPOSITORIES;
 
 /**
@@ -42,6 +36,7 @@ import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.SECRET_RE
 public class AWSVaultUtils {
 
     private static final Log log = LogFactory.getLog(AWSVaultUtils.class);
+    private static String propertiesPath;
 
     private AWSVaultUtils() {
 
@@ -57,10 +52,13 @@ public class AWSVaultUtils {
      */
     public static String getProperty(Properties properties, String propertyName) {
 
+        if (properties == null) {
+            throw new IllegalArgumentException("Properties cannot be null.");
+        }
         String propKey = getPropKey(properties, propertyName);
         String property = properties.getProperty(propKey);
         if (StringUtils.isEmpty(property)) {
-            throw new AWSVaultException("Property " + propertyName.replaceAll(REGEX, "") +
+            throw new AWSVaultException("Property " + propertyName.replaceAll(CRLF_SANITATION_REGEX, "") +
                     " has not been set in secret-conf.properties file. Cannot build AWS Secrets Client!");
         }
         return property;
@@ -78,9 +76,16 @@ public class AWSVaultUtils {
      */
     public static String getProperty(Properties properties, String propertyName, String defaultValue) {
 
+        if (properties == null) {
+            throw new IllegalArgumentException("Properties cannot be null.");
+        }
         String propKey = getPropKey(properties, propertyName);
         String property = properties.getProperty(propKey);
         if (StringUtils.isEmpty(property)) {
+            if (log.isDebugEnabled()) {
+                log.debug("Property " + propKey.replaceAll(CRLF_SANITATION_REGEX, "") + " is empty. " +
+                        "Using default value.");
+            }
             return defaultValue;
         }
         return property;
@@ -95,42 +100,22 @@ public class AWSVaultUtils {
      */
     private static String getPropKey(Properties properties, String propertyName) {
 
-        String propKey;
-        boolean novelFlag = StringUtils.isEmpty(properties.getProperty(SECRET_REPOSITORIES, null));
-        if (novelFlag) {
-            if (log.isDebugEnabled()) {
-                log.debug("Properties specified in the novel method.");
+        if (StringUtils.isEmpty(propertiesPath)) {
+            /* The property "secretRepositories" will exist in secret-conf.properties file if the legacy configuration
+               is used. The novelFlag is set to true if it does not exist. */
+            boolean novelFlag = StringUtils.isEmpty(properties.getProperty(SECRET_REPOSITORIES, null));
+            if (novelFlag) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Properties specified in the novel method.");
+                }
+                propertiesPath = NOVEL_PROPERTIES_PATH;
+            } else {
+                if (log.isDebugEnabled()) {
+                    log.debug("Properties specified in the legacy method.");
+                }
+                propertiesPath = LEGACY_PROPERTIES_PATH;
             }
-            propKey = NOVEL_PROPERTIES_PATH + propertyName;
-        } else {
-            if (log.isDebugEnabled()) {
-                log.debug("Properties specified in the legacy method.");
-            }
-            propKey = LEGACY_PROPERTIES_PATH + propertyName;
         }
-        return propKey;
-    }
-
-    /**
-     * Util method to read the 'secret-conf.properties' file and create a properties object from its content.
-     *
-     * @return Properties properties.
-     */
-    @SuppressFBWarnings("PATH_TRAVERSAL_IN")
-    public static Properties readPropertiesFile() {
-
-        if (log.isDebugEnabled()) {
-            log.debug("Reading configuration properties from file.");
-        }
-
-        Properties properties = new Properties();
-
-        //Reading configurations from file.
-        try (InputStream inputStream = new FileInputStream(CONFIG_FILE_PATH)) {
-            properties.load(inputStream);
-        } catch (IOException e) {
-            throw new AWSSecretCallbackHandlerException("Error loading configurations from " + CONFIG_FILE_PATH, e);
-        }
-        return properties;
+        return propertiesPath + propertyName;
     }
 }

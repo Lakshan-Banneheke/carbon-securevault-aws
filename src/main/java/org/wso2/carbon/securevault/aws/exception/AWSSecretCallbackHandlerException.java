@@ -32,5 +32,4 @@ public class AWSSecretCallbackHandlerException extends RuntimeException {
 
         super(message, cause);
     }
-
 }

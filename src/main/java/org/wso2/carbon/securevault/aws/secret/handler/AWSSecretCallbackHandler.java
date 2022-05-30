@@ -18,19 +18,24 @@
 
 package org.wso2.carbon.securevault.aws.secret.handler;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.wso2.carbon.securevault.aws.common.AWSVaultUtils;
 import org.wso2.carbon.securevault.aws.exception.AWSSecretCallbackHandlerException;
 import org.wso2.carbon.securevault.aws.secret.repository.AWSSecretRepository;
 import org.wso2.securevault.secret.AbstractSecretCallbackHandler;
 import org.wso2.securevault.secret.SingleSecretCallback;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Properties;
 
+import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.CONFIG_FILE_PATH;
 import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.IDENTITY_KEY_PASSWORD_ALIAS;
 import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.IDENTITY_STORE_PASSWORD_ALIAS;
+import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.ID_AWS_SECRET_REPOSITORY_FOR_ROOT_PASSWORD;
 
 /**
  * Secret Callback handler class if keystore and primary key passwords are stored in the AWS Vault.
@@ -75,24 +80,24 @@ public class AWSSecretCallbackHandler extends AbstractSecretCallbackHandler {
     }
 
     /**
-     * Reads keystore and primary key passwords from AWS Vault.
+     * Gets the aliases of the keystore and primary key passwords from properties file and reads them from AWS Vault.
      *
      * @param sameKeyAndKeyStorePass Flag to indicate whether the keystore and primary key passwords are the same.
      */
     private void readPassword(boolean sameKeyAndKeyStorePass) {
-        Properties properties = AWSVaultUtils.readPropertiesFile();
+
+        Properties properties = readPropertiesFile();
 
         String keyStoreAlias = properties.getProperty(IDENTITY_STORE_PASSWORD_ALIAS);
         String privateKeyAlias = properties.getProperty(IDENTITY_KEY_PASSWORD_ALIAS);
-
-        validateProperties(sameKeyAndKeyStorePass, keyStoreAlias, privateKeyAlias);
+        if (StringUtils.isEmpty(keyStoreAlias)) {
+            throw new AWSSecretCallbackHandlerException("keystore.identity.store.alias property has not been set.");
+        } else if (StringUtils.isEmpty(privateKeyAlias) && !sameKeyAndKeyStorePass) {
+            throw new AWSSecretCallbackHandlerException("keystore.identity.key.alias property has not been set.");
+        }
 
         AWSSecretRepository awsSecretRepository = new AWSSecretRepository();
-        awsSecretRepository.init(properties, "AWSSecretRepositoryForRootPassword");
-
-        if (log.isDebugEnabled()) {
-            log.debug("Retrieving root password from AWS Secret Manager.");
-        }
+        awsSecretRepository.init(properties, ID_AWS_SECRET_REPOSITORY_FOR_ROOT_PASSWORD);
 
         keyStorePassword = awsSecretRepository.getSecret(keyStoreAlias);
 
@@ -103,14 +108,26 @@ public class AWSSecretCallbackHandler extends AbstractSecretCallbackHandler {
         }
     }
 
-    private void validateProperties(boolean sameKeyAndKeyStorePass, String keyStoreAlias, String privateKeyAlias) {
+    /**
+     * Util method to read the 'secret-conf.properties' file and create a properties object from its content.
+     *
+     * @return Properties properties.
+     */
+    @SuppressFBWarnings("PATH_TRAVERSAL_IN")
+    private static Properties readPropertiesFile() {
 
-        if (StringUtils.isEmpty(keyStoreAlias)) {
-            throw new AWSSecretCallbackHandlerException("keystore.identity.store.alias property has not been set. " +
-                    "Unable to retrieve root keystore password from AWS Secrets Manager.");
-        } else if (StringUtils.isEmpty(privateKeyAlias) && !sameKeyAndKeyStorePass) {
-            throw new AWSSecretCallbackHandlerException("keystore.identity.key.alias property has not been set. " +
-                    "Unable to retrieve root private key from AWS Secrets Manager.");
+        if (log.isDebugEnabled()) {
+            log.debug("Reading configuration properties from file.");
         }
+
+        Properties properties = new Properties();
+
+        //Reading configurations from file.
+        try (InputStream inputStream = new FileInputStream(CONFIG_FILE_PATH)) {
+            properties.load(inputStream);
+        } catch (IOException e) {
+            throw new AWSSecretCallbackHandlerException("Error loading configurations from " + CONFIG_FILE_PATH, e);
+        }
+        return properties;
     }
 }
