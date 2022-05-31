@@ -83,8 +83,8 @@ public class AWSVaultUtils {
         String property = properties.getProperty(propKey);
         if (StringUtils.isEmpty(property)) {
             if (log.isDebugEnabled()) {
-                log.debug("Property " + propKey.replaceAll(CRLF_SANITATION_REGEX, "") + " is empty. " +
-                        "Using default value.");
+                log.debug("Property " + propKey.replaceAll(CRLF_SANITATION_REGEX, "") +
+                        " is empty or not specified. Using default value.");
             }
             return defaultValue;
         }

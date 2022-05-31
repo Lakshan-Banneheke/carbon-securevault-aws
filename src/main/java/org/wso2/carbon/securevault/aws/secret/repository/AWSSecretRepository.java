@@ -32,6 +32,7 @@ import org.wso2.securevault.definition.CipherInformation;
 import org.wso2.securevault.keystore.IdentityKeyStoreWrapper;
 import org.wso2.securevault.keystore.TrustKeyStoreWrapper;
 import org.wso2.securevault.secret.SecretRepository;
+import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
@@ -121,6 +122,10 @@ public class AWSSecretRepository implements SecretRepository {
         */
         String secret = "";
         try {
+            if (log.isDebugEnabled()) {
+                log.debug("Retrieving secret " + alias.replaceAll(CRLF_SANITATION_REGEX, "") +
+                        " from AWS Vault.");
+            }
             secret = retrieveSecretFromAWS(alias);
             //Decrypting the secret is done only if encryption is enabled. If not, the retrieved secret is returned.
             if (encryptionEnabled) {
@@ -130,7 +135,7 @@ public class AWSSecretRepository implements SecretRepository {
         } catch (ResourceNotFoundException e) {
             log.error("Failed to retrieve secret " + alias.replaceAll(CRLF_SANITATION_REGEX, "")
                     + " from AWS Secrets Manager. Returning empty string.", e);
-        } catch (AWSVaultException e) {
+        } catch (AWSVaultException | SdkClientException e) {
             log.error(e.getMessage().replaceAll(CRLF_SANITATION_REGEX, ""), e);
         }
 

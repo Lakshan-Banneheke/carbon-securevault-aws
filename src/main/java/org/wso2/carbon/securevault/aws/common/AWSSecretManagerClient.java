@@ -107,7 +107,7 @@ public class AWSSecretManagerClient {
     private static AwsCredentialsProvider getCredentialProviderChain(Properties properties) throws AWSVaultException {
 
         List<AwsCredentialsProvider> awsCredentialsProviders = new ArrayList<>();
-        String credentialProvidersString = AWSVaultUtils.getProperty(properties, CREDENTIAL_PROVIDERS);
+        String credentialProvidersString = AWSVaultUtils.getProperty(properties, CREDENTIAL_PROVIDERS, "default");
         String[] credentialProviderTypes = credentialProvidersString.split(COMMA);
 
         addCredentialProviders(awsCredentialsProviders, credentialProviderTypes);
@@ -165,8 +165,7 @@ public class AWSSecretManagerClient {
                 case "default":
                     awsCredentialsProviders.add(DefaultCredentialsProvider.create());
                     if (log.isDebugEnabled()) {
-                        log.debug("Default credential provider (Authentication through " +
-                                "Kubernetes Service Account) added to custom authentication chain.");
+                        log.debug("Default credential provider added to custom authentication chain.");
                     }
                     break;
                 default:
