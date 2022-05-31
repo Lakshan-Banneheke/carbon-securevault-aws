@@ -35,6 +35,7 @@ import java.util.Properties;
 import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.CONFIG_FILE_PATH;
 import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.IDENTITY_KEY_PASSWORD_ALIAS;
 import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.IDENTITY_STORE_PASSWORD_ALIAS;
+import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.ID_AWS_SECRET_REPOSITORY_FOR_ROOT_PASSWORD;
 
 /**
  * Secret Callback handler class if keystore and primary key passwords are stored in the AWS Vault.
@@ -53,29 +54,72 @@ public class AWSSecretCallbackHandler extends AbstractSecretCallbackHandler {
     @Override
     protected void handleSingleSecretCallback(SingleSecretCallback singleSecretCallback) {
 
-        if (StringUtils.isEmpty(keyStorePassword) && StringUtils.isEmpty(privateKeyPassword)) {
+        /*
+        If either of the key store password or the private key password has not been retrieved, it will attempt
+        to retrieve them. If both are retrieved and stored in the static variables, they will not be retrieved again.
+        */
+        if (StringUtils.isEmpty(keyStorePassword) || StringUtils.isEmpty(privateKeyPassword)) {
+            // Indicates whether the private key and the keystore password are the same or different.
             boolean sameKeyAndKeyStorePass = true;
+            /*
+            If the system property "key.password" is set to "true", it indicates that the private key
+            password is not the same as the keystore password.
+            */
             String keyPassword = System.getProperty("key.password");
             if (keyPassword != null && keyPassword.trim().equals("true")) {
                 sameKeyAndKeyStorePass = false;
             }
             readPassword(sameKeyAndKeyStorePass);
+            if (log.isDebugEnabled()) {
+                log.debug("Reading key store password and private key password successful.");
+            }
         }
 
         if (singleSecretCallback.getId().equals("identity.key.password")) {
             singleSecretCallback.setSecret(privateKeyPassword);
-        } else {
+        } else if (singleSecretCallback.getId().equals("identity.store.password")) {
             singleSecretCallback.setSecret(keyStorePassword);
         }
     }
 
     /**
-     * Reads keystore and primary key passwords from AWS Vault.
+     * Gets the aliases of the keystore and primary key passwords from properties file and reads them from AWS Vault.
      *
      * @param sameKeyAndKeyStorePass Flag to indicate whether the keystore and primary key passwords are the same.
      */
-    @SuppressFBWarnings("PATH_TRAVERSAL_IN")
     private void readPassword(boolean sameKeyAndKeyStorePass) {
+
+        Properties properties = readPropertiesFile();
+
+        String keyStoreAlias = properties.getProperty(IDENTITY_STORE_PASSWORD_ALIAS);
+        if (StringUtils.isEmpty(keyStoreAlias)) {
+            throw new AWSSecretCallbackHandlerException(IDENTITY_STORE_PASSWORD_ALIAS + " property has not been set.");
+        }
+
+        AWSSecretRepository awsSecretRepository = new AWSSecretRepository();
+        awsSecretRepository.init(properties, ID_AWS_SECRET_REPOSITORY_FOR_ROOT_PASSWORD);
+
+        keyStorePassword = awsSecretRepository.getSecret(keyStoreAlias);
+
+        if (sameKeyAndKeyStorePass) {
+            privateKeyPassword = keyStorePassword;
+        } else {
+            String privateKeyAlias = properties.getProperty(IDENTITY_KEY_PASSWORD_ALIAS);
+            if (StringUtils.isEmpty(privateKeyAlias)) {
+                throw new AWSSecretCallbackHandlerException(IDENTITY_KEY_PASSWORD_ALIAS +
+                        " property has not been set.");
+            }
+            privateKeyPassword = awsSecretRepository.getSecret(privateKeyAlias);
+        }
+    }
+
+    /**
+     * Util method to read the 'secret-conf.properties' file and create a properties object from its content.
+     *
+     * @return Properties properties.
+     */
+    @SuppressFBWarnings("PATH_TRAVERSAL_IN")
+    private static Properties readPropertiesFile() {
 
         if (log.isDebugEnabled()) {
             log.debug("Reading configuration properties from file.");
@@ -89,31 +133,6 @@ public class AWSSecretCallbackHandler extends AbstractSecretCallbackHandler {
         } catch (IOException e) {
             throw new AWSSecretCallbackHandlerException("Error loading configurations from " + CONFIG_FILE_PATH, e);
         }
-
-        String keyStoreAlias = properties.getProperty(IDENTITY_STORE_PASSWORD_ALIAS);
-        String privateKeyAlias = properties.getProperty(IDENTITY_KEY_PASSWORD_ALIAS);
-
-        if (StringUtils.isEmpty(keyStoreAlias)) {
-            throw new AWSSecretCallbackHandlerException("keystore.identity.store.alias property has not been set. " +
-                    "Unable to retrieve root keystore password from AWS Secrets Manager.");
-        } else if (StringUtils.isEmpty(privateKeyAlias) && !sameKeyAndKeyStorePass) {
-            throw new AWSSecretCallbackHandlerException("keystore.identity.key.alias property has not been set. " +
-                    "Unable to retrieve root private key from AWS Secrets Manager.");
-        }
-
-        AWSSecretRepository awsSecretRepository = new AWSSecretRepository();
-        awsSecretRepository.init(properties, "AWSSecretRepositoryForRootPassword");
-
-        if (log.isDebugEnabled()) {
-            log.debug("Retrieving root password from AWS Secret Manager.");
-        }
-
-        keyStorePassword = awsSecretRepository.getSecret(keyStoreAlias);
-
-        if (sameKeyAndKeyStorePass) {
-            privateKeyPassword = keyStorePassword;
-        } else {
-            privateKeyPassword = awsSecretRepository.getSecret(privateKeyAlias);
-        }
+        return properties;
     }
 }

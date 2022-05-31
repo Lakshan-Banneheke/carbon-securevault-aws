@@ -49,7 +49,7 @@ public class AWSSecretManagerClient {
 
     private static final Log log = LogFactory.getLog(AWSSecretManagerClient.class);
 
-    private static volatile SecretsManagerClient secretsClient;
+    private static SecretsManagerClient secretsClient;
 
     private AWSSecretManagerClient() {
 
@@ -62,23 +62,19 @@ public class AWSSecretManagerClient {
      * @param properties Configuration properties.
      * @return AWS Secrets Manager Client instance.
      */
-    public static SecretsManagerClient getInstance(Properties properties) {
+    public static synchronized SecretsManagerClient getInstance(Properties properties) {
 
         if (secretsClient == null) {
-            synchronized (AWSSecretManagerClient.class) {
-                if (secretsClient == null) {
-                    Region region = getAWSRegion(properties);
-                    AwsCredentialsProvider credentialsProvider = getCredentialsProvider(properties);
-                    SdkHttpClient crtClient =  ApacheHttpClient.create();
+            Region region = getAWSRegion(properties);
+            AwsCredentialsProvider credentialsProvider = getCredentialProviderChain(properties);
+            SdkHttpClient crtClient =  ApacheHttpClient.create();
 
-                    secretsClient = SecretsManagerClient.builder()
-                            .region(region)
-                            .credentialsProvider(credentialsProvider)
-                            .httpClient(crtClient)
-                            .build();
-                    log.info("AWS Secrets Client created.");
-                }
-            }
+            secretsClient = SecretsManagerClient.builder()
+                    .region(region)
+                    .credentialsProvider(credentialsProvider)
+                    .httpClient(crtClient)
+                    .build();
+            log.info("AWS Secrets Client created.");
         }
         return secretsClient;
     }
@@ -108,49 +104,76 @@ public class AWSSecretManagerClient {
      * @return AwsCredentialsProvider.
      * @throws AWSVaultException If the provider types are not specified or invalid.
      */
-
-    private static AwsCredentialsProvider getCredentialsProvider(Properties properties) throws AWSVaultException {
+    private static AwsCredentialsProvider getCredentialProviderChain(Properties properties) throws AWSVaultException {
 
         List<AwsCredentialsProvider> awsCredentialsProviders = new ArrayList<>();
         String credentialProvidersString = AWSVaultUtils.getProperty(properties, CREDENTIAL_PROVIDERS);
-        String[] credentialProviderTypes;
+        String[] credentialProviderTypes = credentialProvidersString.split(COMMA);
 
-        if (credentialProvidersString.contains(COMMA)) {
-            credentialProviderTypes = credentialProvidersString.split(COMMA);
-        } else {
-            credentialProviderTypes = new String[]{credentialProvidersString};
+        addCredentialProviders(awsCredentialsProviders, credentialProviderTypes);
+
+        if (log.isDebugEnabled()) {
+            log.debug("Custom credential provider chain has been created for AWS authentication.");
         }
+        return AwsCredentialsProviderChain.builder().credentialsProviders(awsCredentialsProviders).build();
+    }
 
+    /**
+     * Util method to add create and add the AWS credential providers specified in the config file to the list.
+     * @param awsCredentialsProviders List of AWS credential providers.
+     * @param credentialProviderTypes List of AWS credential provider types specified in the config file.
+     */
+    private static void addCredentialProviders(List<AwsCredentialsProvider> awsCredentialsProviders,
+                                               String[] credentialProviderTypes) {
         //If new credential provider types are needed to be added, add a new mapping in the switch statement.
         for (String credentialType : credentialProviderTypes) {
             switch (credentialType) {
                 case "env":
                     awsCredentialsProviders.add(EnvironmentVariableCredentialsProvider.create());
+                    if (log.isDebugEnabled()) {
+                        log.debug("Environment credential provider added to custom authentication chain.");
+                    }
                     break;
                 case "ec2":
                     awsCredentialsProviders.add(InstanceProfileCredentialsProvider.create());
+                    if (log.isDebugEnabled()) {
+                        log.debug("Instance Profile credential provider added to custom authentication chain.");
+                    }
                     break;
                 case "ecs":
                     awsCredentialsProviders.add(ContainerCredentialsProvider.builder().build());
+                    if (log.isDebugEnabled()) {
+                        log.debug("Container credential provider added to custom authentication chain.");
+                    }
                     break;
                 case "cli":
                 case "profile":
                     awsCredentialsProviders.add(ProfileCredentialsProvider.create());
+                    if (log.isDebugEnabled()) {
+                        log.debug("Profile credential provider (Authentication through AWS CLI) added to " +
+                                "custom authentication chain.");
+                    }
                     break;
                 case "webIdentity":
                 case "k8sServiceAccount":
                     awsCredentialsProviders.add(WebIdentityTokenFileCredentialsProvider.create());
+                    if (log.isDebugEnabled()) {
+                        log.debug("Web Identity Token File credential provider (Authentication through " +
+                                "Kubernetes Service Account) added to custom authentication chain.");
+                    }
                     break;
                 case "default":
                     awsCredentialsProviders.add(DefaultCredentialsProvider.create());
+                    if (log.isDebugEnabled()) {
+                        log.debug("Default credential provider (Authentication through " +
+                                "Kubernetes Service Account) added to custom authentication chain.");
+                    }
                     break;
                 default:
-                    throw new AWSVaultException("Credential provider type " + credentialType + " is invalid.");
+                    log.warn("Credential provider type specified is invalid. Using Default credential provider chain.");
+                    awsCredentialsProviders.add(DefaultCredentialsProvider.create());
+                    break;
             }
         }
-        if (log.isDebugEnabled()) {
-            log.debug("Custom credential provider chain has been created for AWS authentication.");
-        }
-        return AwsCredentialsProviderChain.builder().credentialsProviders(awsCredentialsProviders).build();
     }
 }
