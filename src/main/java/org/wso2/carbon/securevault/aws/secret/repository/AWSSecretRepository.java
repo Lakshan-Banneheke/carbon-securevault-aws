@@ -63,6 +63,12 @@ public class AWSSecretRepository implements SecretRepository {
     private DecryptionProvider baseCipher;
     private boolean encryptionEnabled;
 
+    /**
+     * Creates an AWSSecretRepository object. This constructor is invoked when the legacy configuration has been used.
+     *
+     * @param identityKeyStoreWrapper Identity keystore wrapper.
+     * @param trustKeyStoreWrapper Trust keystore wrapper.
+     */
     public AWSSecretRepository(IdentityKeyStoreWrapper identityKeyStoreWrapper,
                                TrustKeyStoreWrapper trustKeyStoreWrapper) {
 
@@ -70,6 +76,10 @@ public class AWSSecretRepository implements SecretRepository {
         this.trustKeyStoreWrapper = trustKeyStoreWrapper;
     }
 
+    /**
+     * Creates an AWSSecretRepository object. This constructor is invoked when the novel configuration has been used.
+     * It is also invoked when the repository is created in the AWSSecretCallbackHandler.
+     */
     public AWSSecretRepository() {
 
     }
@@ -78,7 +88,7 @@ public class AWSSecretRepository implements SecretRepository {
      * Initializes the AWS Secret repository based on provided properties.
      *
      * @param properties Configuration properties.
-     * @param id         Identifier to identify properties related to the corresponding repository.
+     * @param id         Identifier to identify the corresponding repository and the instance.
      */
     @Override
     public void init(Properties properties, String id) {
