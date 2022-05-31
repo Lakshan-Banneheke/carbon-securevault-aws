@@ -21,14 +21,14 @@ package org.wso2.carbon.securevault.aws.exception;
 /**
  * AWS secret callback handler exception.
  */
-public class AWSSecretCallbackHandlerException extends RuntimeException {
+public class AWSVaultRuntimeException extends RuntimeException {
 
-    public AWSSecretCallbackHandlerException(String message) {
+    public AWSVaultRuntimeException(String message) {
 
         super(message);
     }
 
-    public AWSSecretCallbackHandlerException(String message, Throwable cause) {
+    public AWSVaultRuntimeException(String message, Throwable cause) {
 
         super(message, cause);
     }

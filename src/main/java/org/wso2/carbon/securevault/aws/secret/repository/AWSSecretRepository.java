@@ -24,6 +24,7 @@ import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.securevault.aws.common.AWSSecretManagerClient;
 import org.wso2.carbon.securevault.aws.common.AWSVaultUtils;
 import org.wso2.carbon.securevault.aws.exception.AWSVaultException;
+import org.wso2.carbon.securevault.aws.exception.AWSVaultRuntimeException;
 import org.wso2.securevault.CipherFactory;
 import org.wso2.securevault.CipherOperationMode;
 import org.wso2.securevault.DecryptionProvider;
@@ -45,7 +46,7 @@ import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.ALGORITHM
 import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.CRLF_SANITATION_REGEX;
 import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.DEFAULT_ALGORITHM;
 import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.ENCRYPTION_ENABLED;
-import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.ID_AWS_SECRET_REPOSITORY_FOR_ROOT_PASSWORD;
+import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.ROOT_PASSWORDS;
 import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.VERSION_DELIMITER;
 
 /**
@@ -62,13 +63,13 @@ public class AWSSecretRepository implements SecretRepository {
     private IdentityKeyStoreWrapper identityKeyStoreWrapper;
     private TrustKeyStoreWrapper trustKeyStoreWrapper;
     private DecryptionProvider baseCipher;
-    private boolean encryptionEnabled;
+    private boolean encryptionEnabled = false;
 
     /**
      * Creates an AWSSecretRepository object. This constructor is invoked when the legacy configuration has been used.
      *
      * @param identityKeyStoreWrapper Identity keystore wrapper.
-     * @param trustKeyStoreWrapper Trust keystore wrapper.
+     * @param trustKeyStoreWrapper    Trust keystore wrapper.
      */
     public AWSSecretRepository(IdentityKeyStoreWrapper identityKeyStoreWrapper,
                                TrustKeyStoreWrapper trustKeyStoreWrapper) {
@@ -94,9 +95,8 @@ public class AWSSecretRepository implements SecretRepository {
     @Override
     public void init(Properties properties, String id) {
 
-        if (StringUtils.equals(id, ID_AWS_SECRET_REPOSITORY_FOR_ROOT_PASSWORD)) {
+        if (StringUtils.equals(id, ROOT_PASSWORDS)) {
             log.info("Initializing AWS Secure Vault for root password retrieval.");
-            encryptionEnabled = false;
         } else {
             log.info("Initializing AWS Secure Vault for secret retrieval.");
             setEncryptionEnabled(properties);
@@ -126,7 +126,7 @@ public class AWSSecretRepository implements SecretRepository {
                 log.debug("Retrieving secret " + alias.replaceAll(CRLF_SANITATION_REGEX, "") +
                         " from AWS Vault.");
             }
-            secret = retrieveSecretFromAWS(alias);
+            secret = retrieveSecretFromVault(alias);
             //Decrypting the secret is done only if encryption is enabled. If not, the retrieved secret is returned.
             if (encryptionEnabled) {
                 secret = new String(baseCipher.decrypt(secret.trim().getBytes(StandardCharsets.UTF_8)),
@@ -150,10 +150,16 @@ public class AWSSecretRepository implements SecretRepository {
     @Override
     public String getEncryptedData(String alias) {
 
+        String encryptedSecret = "";
         if (!encryptionEnabled) {
             throw new UnsupportedOperationException();
         }
-        return retrieveSecretFromAWS(alias);
+        try {
+            encryptedSecret = retrieveSecretFromVault(alias);
+        } catch (AWSVaultException e) {
+            log.error(e.getMessage().replaceAll(CRLF_SANITATION_REGEX, ""), e);
+        }
+        return encryptedSecret;
     }
 
     /**
@@ -161,7 +167,7 @@ public class AWSSecretRepository implements SecretRepository {
      *
      * @param alias Alias of the secret.
      */
-    private String retrieveSecretFromAWS(String alias) {
+    private String retrieveSecretFromVault(String alias) throws AWSVaultException {
 
         SecretReference secretReference = parseSecretReference(alias);
 
@@ -173,8 +179,8 @@ public class AWSSecretRepository implements SecretRepository {
         String secret = valueResponse.secretString();
 
         if (StringUtils.isEmpty(secret)) {
-            throw new AWSVaultException("Secret " + secretReference.name.replaceAll(CRLF_SANITATION_REGEX, "")
-                    + "is null or empty. Returning empty string");
+            log.warn("Secret " + secretReference.name.replaceAll(CRLF_SANITATION_REGEX, "")
+                    + " is null or empty. Returning empty string");
         }
         if (log.isDebugEnabled()) {
             log.debug("Secret " + secretReference.name.replaceAll(CRLF_SANITATION_REGEX, "") +
@@ -193,32 +199,33 @@ public class AWSSecretRepository implements SecretRepository {
      *              separated by a "#" delimiter. The version is optional and can be left blank.
      * @return An array with the secret name and the secret version.
      */
-    private SecretReference parseSecretReference(String alias) {
+    private SecretReference parseSecretReference(String alias) throws AWSVaultException {
 
-        SecretReference secretReference = new SecretReference(alias, null);
+        SecretReference secretReference;
 
-        if (StringUtils.isNotEmpty(alias)) {
-            if (alias.contains(VERSION_DELIMITER)) {
-                if (StringUtils.countMatches(alias, VERSION_DELIMITER) == 1) {
-                    String[] aliasComponents = alias.split(VERSION_DELIMITER, -1);
-                    if (StringUtils.isEmpty(aliasComponents[0])) {
-                        throw new AWSVaultException("Secret name cannot be empty. Returning empty string.");
-                    }
-                    if (StringUtils.isEmpty(aliasComponents[1])) {
-                        aliasComponents[1] = null;
-                    }
-                    secretReference.name = aliasComponents[0];
-                    secretReference.version = aliasComponents[1];
-                } else {
-                    throw new AWSVaultException("Secret with alias " + alias.replaceAll(CRLF_SANITATION_REGEX, "") +
-                            " contains multiple instances of the delimiter. It should be of the format " +
-                            "secretName#secretVersion. It should contain only one hashtag. Returning empty string."
-                    );
+        if (StringUtils.isEmpty(alias)) {
+            throw new AWSVaultException("Secret name cannot be empty.");
+        }
+
+        if (alias.contains(VERSION_DELIMITER)) {
+            if (StringUtils.countMatches(alias, VERSION_DELIMITER) == 1) {
+                String[] aliasComponents = alias.split(VERSION_DELIMITER, -1);
+                if (StringUtils.isEmpty(aliasComponents[0])) {
+                    throw new AWSVaultException("Secret name cannot be empty.");
                 }
+                if (StringUtils.isEmpty(aliasComponents[1])) {
+                    aliasComponents[1] = null;
+                }
+                secretReference = new SecretReference(aliasComponents[0], aliasComponents[1]);
+            } else {
+                throw new AWSVaultException("Secret with alias " + alias.replaceAll(CRLF_SANITATION_REGEX, "") +
+                        " contains multiple instances of the delimiter. It should contain only one hashtag."
+                );
             }
         } else {
-            throw new AWSVaultException("Secret name cannot be empty. Returning empty string.");
+            secretReference = new SecretReference(alias, null);
         }
+
 
         debugLogSecretVersionStatus(secretReference);
         return secretReference;
@@ -250,13 +257,15 @@ public class AWSSecretRepository implements SecretRepository {
     private void setEncryptionEnabled(Properties properties) {
 
         String encryptionEnabledPropertyString = AWSVaultUtils.getProperty(properties, ENCRYPTION_ENABLED);
+        if (StringUtils.isEmpty(encryptionEnabledPropertyString)) {
+            log.warn("Encryption enabled property has not been set. It will be taken as false by default.");
+        }
         boolean encryptionEnabledProperty = Boolean.parseBoolean(encryptionEnabledPropertyString);
 
         if (encryptionEnabledProperty) {
             if (identityKeyStoreWrapper == null) {
-                throw new AWSVaultException("Key Store has not been initialized and therefore unable to support " +
-                        "encrypted secrets. Encrypted secrets are not supported in the novel configuration. " +
-                        "Either change the configuration to legacy method or set encryptionEnabled property as false.");
+                throw new AWSVaultRuntimeException("Key Store has not been initialized and therefore unable to " +
+                        "support encrypted secrets. Encrypted secrets are not supported in the novel configuration.");
             }
             if (log.isDebugEnabled()) {
                 log.debug("Encryption is enabled in AWS Secure Vault.");
@@ -264,7 +273,6 @@ public class AWSSecretRepository implements SecretRepository {
             encryptionEnabled = true;
             initDecryptionProvider(properties);
         } else {
-            encryptionEnabled = false;
             if (log.isDebugEnabled()) {
                 log.debug("Encryption is disabled in AWS Secure Vault.");
             }
@@ -279,7 +287,10 @@ public class AWSSecretRepository implements SecretRepository {
     private void initDecryptionProvider(Properties properties) {
 
         // If an algorithm is not specified in the properties file, RSA algorithm will be used by default.
-        String algorithm = AWSVaultUtils.getProperty(properties, ALGORITHM, DEFAULT_ALGORITHM);
+        String algorithm = AWSVaultUtils.getProperty(properties, ALGORITHM);
+        if (StringUtils.isEmpty(algorithm)) {
+            algorithm = DEFAULT_ALGORITHM;
+        }
 
         //Creates a cipherInformation
         CipherInformation cipherInformation = new CipherInformation();

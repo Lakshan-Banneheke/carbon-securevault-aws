@@ -21,13 +21,12 @@ package org.wso2.carbon.securevault.aws.common;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.wso2.carbon.securevault.aws.exception.AWSVaultException;
 
 import java.util.Properties;
 
 import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.CRLF_SANITATION_REGEX;
-import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.LEGACY_PROPERTIES_PATH;
-import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.NOVEL_PROPERTIES_PATH;
+import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.LEGACY_PROPERTIES_PREFIX;
+import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.NOVEL_PROPERTIES_PREFIX;
 import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.SECRET_REPOSITORIES;
 
 /**
@@ -36,7 +35,7 @@ import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.SECRET_RE
 public class AWSVaultUtils {
 
     private static final Log log = LogFactory.getLog(AWSVaultUtils.class);
-    private static String propertiesPath;
+    private static String propertiesPrefix;
 
     private AWSVaultUtils() {
 
@@ -58,35 +57,8 @@ public class AWSVaultUtils {
         String propKey = getPropKey(properties, propertyName);
         String property = properties.getProperty(propKey);
         if (StringUtils.isEmpty(property)) {
-            throw new AWSVaultException("Property " + propertyName.replaceAll(CRLF_SANITATION_REGEX, "") +
-                    " has not been set in secret-conf.properties file. Cannot build AWS Secrets Client!");
-        }
-        return property;
-    }
-
-    /**
-     * Util method to get the properties based on legacy or novel method used for defining the property in the
-     * secret-conf.properties file. If a default value is passed to the method, it will return the default value instead
-     * of throwing an error if the property is empty.
-     *
-     * @param properties   Configuration properties.
-     * @param propertyName Name of the required property.
-     * @param defaultValue Returns this value if property is empty.
-     * @return Property value.
-     */
-    public static String getProperty(Properties properties, String propertyName, String defaultValue) {
-
-        if (properties == null) {
-            throw new IllegalArgumentException("Properties cannot be null.");
-        }
-        String propKey = getPropKey(properties, propertyName);
-        String property = properties.getProperty(propKey);
-        if (StringUtils.isEmpty(property)) {
-            if (log.isDebugEnabled()) {
-                log.debug("Property " + propKey.replaceAll(CRLF_SANITATION_REGEX, "") +
-                        " is empty or not specified. Using default value.");
-            }
-            return defaultValue;
+            log.warn("Property " + propertyName.replaceAll(CRLF_SANITATION_REGEX, "") +
+                    " has not been set in secret-conf.properties file.");
         }
         return property;
     }
@@ -100,7 +72,7 @@ public class AWSVaultUtils {
      */
     private static String getPropKey(Properties properties, String propertyName) {
 
-        if (StringUtils.isEmpty(propertiesPath)) {
+        if (StringUtils.isEmpty(propertiesPrefix)) {
             /* The property "secretRepositories" will exist in secret-conf.properties file if the legacy configuration
                is used. The novelFlag is set to true if it does not exist. */
             boolean novelFlag = StringUtils.isEmpty(properties.getProperty(SECRET_REPOSITORIES, null));
@@ -108,14 +80,14 @@ public class AWSVaultUtils {
                 if (log.isDebugEnabled()) {
                     log.debug("Properties specified in the novel method.");
                 }
-                propertiesPath = NOVEL_PROPERTIES_PATH;
+                propertiesPrefix = NOVEL_PROPERTIES_PREFIX;
             } else {
                 if (log.isDebugEnabled()) {
                     log.debug("Properties specified in the legacy method.");
                 }
-                propertiesPath = LEGACY_PROPERTIES_PATH;
+                propertiesPrefix = LEGACY_PROPERTIES_PREFIX;
             }
         }
-        return propertiesPath + propertyName;
+        return propertiesPrefix + propertyName;
     }
 }

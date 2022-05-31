@@ -68,10 +68,10 @@ Set appropriate values for `<AWS_REGION>`, `<Credential_Provider_Type>`, `<ENCRY
 
 Eg: `secretRepositories.vault.properties.awsregion=us-east-2`
 
-`<Credential_Provider_Type>` - Specify the credential provider type to be used to authenticate the user into AWS. Valid
-values are `env`, `ecs`, `ec2`, `cli`, `profile`, `webIdentity`, `k8sServiceAccount`, `default`. These values can be
-added singularly or comma separate to form an authentication chain in the specified order. This is further explained in
-Step 3.
+`<Credential_Provider_Type>` - Specify the credential provider type to be used to authenticate the user into AWS. Possible
+values are `env`, `ecs`, `ec2`, `cli`, `k8sServiceAccount`. These values can be
+added singularly or comma separate to form an authentication chain in the specified order. If it is left empty, 
+the default credential provider chain will be used. This is further explained in Step 3.
 
 `<ENCRYPTION_ENABLED>` - Specify either true or false. If set to true, the secrets stored in the AWS Secrets Manager (
 except the root password) has to be encrypted beforehand using the cipher tool. Please not that if you are using the
@@ -92,18 +92,17 @@ above.
 3. `ec2` - It uses
    the [InstanceProfileCredentialsProvider](https://sdk.amazonaws.com/java/api/latest/software/amazon/awssdk/auth/credentials/InstanceProfileCredentialsProvider.html)
    class to load credentials from the Amazon EC2 metadata service.
-4. `cli` or `profile` - Both of these are the same and uses
+4. `cli` - Both of these are the same and uses
    the [ProfileCredentialsProvider](https://sdk.amazonaws.com/java/api/latest/software/amazon/awssdk/auth/credentials/ProfileCredentialsProvider.html)
    to load credentials from credential profile file at the default location (~/.aws/credentials) with default profile
    name shared by all AWS SDKs and the AWS CLI. If the user is logged into AWS using the AWS CLI, this provider type can
    be used.
-5. `webIdentity` or `k8sServiceAccount` - Both of these are the same and uses
+5. `k8sServiceAccount` - Both of these are the same and uses
    the [WebIdentityTokenFileCredentialsProvider](https://sdk.amazonaws.com/java/api/latest/software/amazon/awssdk/auth/credentials/WebIdentityTokenFileCredentialsProvider.html)
    to load credentials from a web identity token file. This provider type is used when using a Kubernetes service
    account to authenticate into Secrets Manager when deployed on an AWS EKS cluster. For more info
-    - [IAM roles for service accounts on EKS](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html)
-      .
-6. `default` - It uses
+    - [IAM roles for service accounts on EKS](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html).
+6. If it is left empty, or an invalid value is given, it uses
    the [DefaultCredentialsProvider](https://sdk.amazonaws.com/java/api/latest/software/amazon/awssdk/auth/credentials/DefaultCredentialsProvider.html)
    class to build the default authentication chain.
 
