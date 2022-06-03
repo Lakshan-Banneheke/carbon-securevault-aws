@@ -92,12 +92,12 @@ above.
 3. `ec2` - It uses
    the [InstanceProfileCredentialsProvider](https://sdk.amazonaws.com/java/api/latest/software/amazon/awssdk/auth/credentials/InstanceProfileCredentialsProvider.html)
    class to load credentials from the Amazon EC2 metadata service.
-4. `cli` - Both of these are the same and uses
+4. `cli` - It uses
    the [ProfileCredentialsProvider](https://sdk.amazonaws.com/java/api/latest/software/amazon/awssdk/auth/credentials/ProfileCredentialsProvider.html)
    to load credentials from credential profile file at the default location (~/.aws/credentials) with default profile
    name shared by all AWS SDKs and the AWS CLI. If the user is logged into AWS using the AWS CLI, this provider type can
    be used.
-5. `k8sServiceAccount` - Both of these are the same and uses
+5. `k8sServiceAccount` - It uses
    the [WebIdentityTokenFileCredentialsProvider](https://sdk.amazonaws.com/java/api/latest/software/amazon/awssdk/auth/credentials/WebIdentityTokenFileCredentialsProvider.html)
    to load credentials from a web identity token file. This provider type is used when using a Kubernetes service
    account to authenticate into Secrets Manager when deployed on an AWS EKS cluster. For more info
