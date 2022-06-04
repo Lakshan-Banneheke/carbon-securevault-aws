@@ -18,6 +18,7 @@
 
 package org.wso2.carbon.securevault.aws.secret.handler;
 
+import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.After;
 import org.powermock.core.classloader.annotations.PrepareForTest;
@@ -31,12 +32,15 @@ import org.wso2.carbon.securevault.aws.exception.AWSVaultRuntimeException;
 import org.wso2.carbon.securevault.aws.secret.repository.AWSSecretRepository;
 import org.wso2.securevault.secret.SingleSecretCallback;
 
+import java.io.FileInputStream;
 import java.util.Properties;
 
 import static org.junit.Assert.assertThrows;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.powermock.api.mockito.PowerMockito.when;
+import static org.mockito.Mockito.when;
+import static org.powermock.api.mockito.PowerMockito.mockStatic;
 import static org.powermock.api.mockito.PowerMockito.whenNew;
 import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.IDENTITY_KEY_PASSWORD_ALIAS;
 import static org.wso2.carbon.securevault.aws.common.AWSVaultConstants.IDENTITY_STORE_PASSWORD_ALIAS;
@@ -55,9 +59,15 @@ public class AWSSecretCallbackHandlerTest extends PowerMockTestCase {
     private SingleSecretCallback singleSecretCallback;
     private AWSSecretRepository awsSecretRepository;
     private Properties properties;
+    private Log logger;
 
     @BeforeClass
     public void setUp() {
+
+        mockStatic(LogFactory.class);
+        logger = mock(Log.class);
+        when(logger.isDebugEnabled()).thenReturn(true);
+        when(LogFactory.getLog(AWSSecretCallbackHandler.class)).thenReturn(logger);
 
         awsSecretCallbackHandler = new AWSSecretCallbackHandler();
         System.setProperty("key.password", "false");
@@ -79,6 +89,8 @@ public class AWSSecretCallbackHandlerTest extends PowerMockTestCase {
         whenNew(Properties.class).withNoArguments().thenReturn(properties);
         when(properties.getProperty(IDENTITY_STORE_PASSWORD_ALIAS)).thenReturn(IDENTITY_KEYSTORE_PASSWORD_ALIAS_VALUE);
         when(properties.getProperty(IDENTITY_KEY_PASSWORD_ALIAS)).thenReturn(PRIVATE_KEY_PASSWORD_ALIAS_VALUE);
+
+        whenNew(FileInputStream.class).withArguments(anyString()).thenReturn(mock(FileInputStream.class));
     }
 
     @After
