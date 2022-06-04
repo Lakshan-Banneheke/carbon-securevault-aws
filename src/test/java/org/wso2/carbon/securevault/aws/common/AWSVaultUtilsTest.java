@@ -51,8 +51,8 @@ public class AWSVaultUtilsTest extends PowerMockTestCase {
 
         mockStatic(LogFactory.class);
         logger = mock(Log.class);
-        when(LogFactory.getLog(AWSVaultUtils.class)).thenReturn(logger);
         when(logger.isDebugEnabled()).thenReturn(true);
+        when(LogFactory.getLog(AWSVaultUtils.class)).thenReturn(logger);
     }
 
     @BeforeMethod

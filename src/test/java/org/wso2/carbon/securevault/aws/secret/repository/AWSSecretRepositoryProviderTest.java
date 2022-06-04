@@ -46,6 +46,9 @@ public class AWSSecretRepositoryProviderTest {
     @Test(description = "Test case for getSecretRepository() method.")
     public void testGetSecretRepository() {
 
-        Assert.assertEquals(AWSSecretRepository.class, awsSecretRepositoryProvider.getSecretRepository(identityKeyStoreWrapper, trustKeyStoreWrapper).getClass());
+        Assert.assertEquals(
+                awsSecretRepositoryProvider.getSecretRepository(identityKeyStoreWrapper, trustKeyStoreWrapper)
+                        .getClass(), AWSSecretRepository.class
+        );
     }
 }
