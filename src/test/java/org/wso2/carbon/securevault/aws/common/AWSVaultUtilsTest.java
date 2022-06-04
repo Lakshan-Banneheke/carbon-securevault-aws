@@ -37,9 +37,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.powermock.api.mockito.PowerMockito.mockStatic;
 
+/**
+ * Unit test class for AWSVaultUtils.
+ */
 @PrepareForTest({LogFactory.class})
 public class AWSVaultUtilsTest extends PowerMockTestCase {
 
+    public static final String TEST_PROPERTY = "testProperty";
     private Log logger;
 
     @BeforeClass
@@ -62,7 +66,7 @@ public class AWSVaultUtilsTest extends PowerMockTestCase {
 
         Properties configProperties = getLegacyConfigProperties();
         String propertyValueFromMethod = AWSVaultUtils.getProperty(configProperties, "test");
-        Assert.assertEquals(propertyValueFromMethod, "testProperty");
+        Assert.assertEquals(propertyValueFromMethod, TEST_PROPERTY);
     }
 
     @Test(description = "Positive test case for getProperty() if configs are in novel method.")
@@ -70,7 +74,7 @@ public class AWSVaultUtilsTest extends PowerMockTestCase {
 
         Properties configProperties = getNovelConfigProperties();
         String propertyValueFromMethod = AWSVaultUtils.getProperty(configProperties, "test");
-        Assert.assertEquals(propertyValueFromMethod, "testProperty");
+        Assert.assertEquals(propertyValueFromMethod, TEST_PROPERTY);
     }
 
     @Test(description = "Negative test case for getProperty() if property not specified.")
@@ -95,7 +99,7 @@ public class AWSVaultUtilsTest extends PowerMockTestCase {
 
         Properties configProperties = new Properties();
         configProperties.setProperty("secretRepositories", "vault");
-        configProperties.setProperty("secretRepositories.vault.properties.test", "testProperty");
+        configProperties.setProperty("secretRepositories.vault.properties.test", TEST_PROPERTY);
         return configProperties;
     }
 
@@ -104,7 +108,7 @@ public class AWSVaultUtilsTest extends PowerMockTestCase {
         Properties configProperties = new Properties();
 
         configProperties.setProperty("secretProviders", "vault");
-        configProperties.setProperty("secretProviders.vault.repositories.aws.properties.test", "testProperty");
+        configProperties.setProperty("secretProviders.vault.repositories.aws.properties.test", TEST_PROPERTY);
 
         return configProperties;
     }

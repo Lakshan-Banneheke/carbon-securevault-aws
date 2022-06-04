@@ -119,6 +119,9 @@ public class AWSSecretCallbackHandler extends AbstractSecretCallbackHandler {
                         " property has not been set.");
             }
             privateKeyPassword = awsSecretRepository.getSecret(privateKeyAlias);
+            if (StringUtils.isEmpty(privateKeyPassword)) {
+                throw new AWSVaultRuntimeException("Error in retrieving " + IDENTITY_KEY_PASSWORD_ALIAS + " property.");
+            }
         }
     }
 
@@ -128,7 +131,7 @@ public class AWSSecretCallbackHandler extends AbstractSecretCallbackHandler {
      * @return Properties properties.
      */
     @SuppressFBWarnings("PATH_TRAVERSAL_IN")
-    private static Properties readPropertiesFile() {
+    private Properties readPropertiesFile() {
 
         if (log.isDebugEnabled()) {
             log.debug("Reading configuration properties from file.");
