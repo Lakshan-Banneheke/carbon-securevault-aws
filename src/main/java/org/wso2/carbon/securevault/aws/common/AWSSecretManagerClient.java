@@ -117,7 +117,12 @@ public class AWSSecretManagerClient {
         List<AwsCredentialsProvider> awsCredentialsProviders = new ArrayList<>();
         String credentialProvidersString = AWSVaultUtils.getProperty(properties, CREDENTIAL_PROVIDERS);
 
-        String[] credentialProviderTypes = credentialProvidersString.split(COMMA);
+        String[] credentialProviderTypes;
+        if (StringUtils.isEmpty(credentialProvidersString)) {
+            credentialProviderTypes = new String[]{""};
+        } else {
+            credentialProviderTypes = credentialProvidersString.split(COMMA);
+        }
 
         addCredentialProviders(awsCredentialsProviders, credentialProviderTypes);
 
@@ -137,7 +142,7 @@ public class AWSSecretManagerClient {
                                                String[] credentialProviderTypes) {
         //If new credential provider types are needed to be added, add a new mapping in the switch statement.
         for (String credentialType : credentialProviderTypes) {
-            switch (credentialType) {
+            switch (credentialType.trim()) {
                 case ENV:
                     awsCredentialsProviders.add(EnvironmentVariableCredentialsProvider.create());
                     if (log.isDebugEnabled()) {
