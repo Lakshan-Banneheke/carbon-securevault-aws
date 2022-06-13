@@ -106,10 +106,8 @@ public class AWSVaultUtilsTest extends PowerMockTestCase {
     private Properties getNovelConfigProperties() {
 
         Properties configProperties = new Properties();
-
         configProperties.setProperty("secretProviders", "vault");
         configProperties.setProperty("secretProviders.vault.repositories.aws.properties.test", TEST_PROPERTY);
-
         return configProperties;
     }
 

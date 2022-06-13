@@ -20,11 +20,11 @@ package org.wso2.carbon.securevault.aws.secret.handler;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.junit.After;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.testng.PowerMockTestCase;
 import org.powermock.reflect.Whitebox;
 import org.testng.Assert;
+import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -59,22 +59,21 @@ public class AWSSecretCallbackHandlerTest extends PowerMockTestCase {
     private SingleSecretCallback singleSecretCallback;
     private AWSSecretRepository awsSecretRepository;
     private Properties properties;
-    private Log logger;
 
     @BeforeClass
     public void setUp() {
 
         mockStatic(LogFactory.class);
-        logger = mock(Log.class);
+        Log logger = mock(Log.class);
         when(logger.isDebugEnabled()).thenReturn(true);
         when(LogFactory.getLog(AWSSecretCallbackHandler.class)).thenReturn(logger);
-
-        awsSecretCallbackHandler = new AWSSecretCallbackHandler();
-        System.setProperty("key.password", "false");
     }
 
     @BeforeMethod
     public void beforeMethod() throws Exception {
+
+        awsSecretCallbackHandler = new AWSSecretCallbackHandler();
+        System.setProperty("key.password", "false");
 
         singleSecretCallback = mock(SingleSecretCallback.class);
         Whitebox.setInternalState(AWSSecretCallbackHandler.class, "keyStorePassword", "");
@@ -93,7 +92,7 @@ public class AWSSecretCallbackHandlerTest extends PowerMockTestCase {
         whenNew(FileInputStream.class).withArguments(anyString()).thenReturn(mock(FileInputStream.class));
     }
 
-    @After
+    @AfterMethod
     public void tearDown() {
 
         System.clearProperty("key.password");
@@ -104,6 +103,7 @@ public class AWSSecretCallbackHandlerTest extends PowerMockTestCase {
 
         when(singleSecretCallback.getId()).thenReturn("identity.key.password");
         awsSecretCallbackHandler.handleSingleSecretCallback(singleSecretCallback);
+
         Assert.assertEquals(Whitebox.getInternalState(AWSSecretCallbackHandler.class, "privateKeyPassword"),
                 SAMPLE_PRIVATE_KEY_PASSWORD);
         verify(singleSecretCallback).setSecret(SAMPLE_PRIVATE_KEY_PASSWORD);
@@ -114,6 +114,7 @@ public class AWSSecretCallbackHandlerTest extends PowerMockTestCase {
 
         when(singleSecretCallback.getId()).thenReturn("identity.store.password");
         awsSecretCallbackHandler.handleSingleSecretCallback(singleSecretCallback);
+
         Assert.assertEquals(Whitebox.getInternalState(AWSSecretCallbackHandler.class, "keyStorePassword"),
                 SAMPLE_KEYSTORE_PASSWORD);
         verify(singleSecretCallback).setSecret(SAMPLE_KEYSTORE_PASSWORD);
@@ -125,11 +126,10 @@ public class AWSSecretCallbackHandlerTest extends PowerMockTestCase {
 
         System.setProperty("key.password", "true");
         String samplePrivateKeyPassword = "sample-password2";
-
         when(singleSecretCallback.getId()).thenReturn("identity.key.password");
         when(awsSecretRepository.getSecret(PRIVATE_KEY_PASSWORD_ALIAS_VALUE)).thenReturn(samplePrivateKeyPassword);
-
         awsSecretCallbackHandler.handleSingleSecretCallback(singleSecretCallback);
+
         Assert.assertEquals(
                 Whitebox.getInternalState(AWSSecretCallbackHandler.class, "privateKeyPassword"),
                 samplePrivateKeyPassword
@@ -146,13 +146,12 @@ public class AWSSecretCallbackHandlerTest extends PowerMockTestCase {
     public void testHandleSingleSecretCallbackEmptyAliasKeyStore() {
 
         when(properties.getProperty(IDENTITY_STORE_PASSWORD_ALIAS)).thenReturn(null);
-
         when(singleSecretCallback.getId()).thenReturn("identity.store.password");
-
         Throwable exception = assertThrows(
                 AWSVaultRuntimeException.class,
                 () -> awsSecretCallbackHandler.handleSingleSecretCallback(singleSecretCallback)
         );
+
         Assert.assertEquals(exception.getMessage(), IDENTITY_STORE_PASSWORD_ALIAS + " property has not been set.");
     }
 
@@ -160,13 +159,12 @@ public class AWSSecretCallbackHandlerTest extends PowerMockTestCase {
     public void testHandleSingleSecretCallbackEmptySecretKeyStore() {
 
         when(awsSecretRepository.getSecret(IDENTITY_KEYSTORE_PASSWORD_ALIAS_VALUE)).thenReturn(null);
-
         when(singleSecretCallback.getId()).thenReturn("identity.store.password");
-
         Throwable exception = assertThrows(
                 AWSVaultRuntimeException.class,
                 () -> awsSecretCallbackHandler.handleSingleSecretCallback(singleSecretCallback)
         );
+
         Assert.assertEquals(exception.getMessage(), "Error in retrieving " + IDENTITY_STORE_PASSWORD_ALIAS +
                 " property.");
     }
@@ -177,13 +175,12 @@ public class AWSSecretCallbackHandlerTest extends PowerMockTestCase {
 
         System.setProperty("key.password", "true");
         when(properties.getProperty(IDENTITY_KEY_PASSWORD_ALIAS)).thenReturn(null);
-
         when(singleSecretCallback.getId()).thenReturn("identity.key.password");
-
         Throwable exception = assertThrows(
                 AWSVaultRuntimeException.class,
                 () -> awsSecretCallbackHandler.handleSingleSecretCallback(singleSecretCallback)
         );
+
         Assert.assertEquals(exception.getMessage(), IDENTITY_KEY_PASSWORD_ALIAS + " property has not been set.");
         System.setProperty("key.password", "false");
     }
@@ -193,13 +190,12 @@ public class AWSSecretCallbackHandlerTest extends PowerMockTestCase {
     public void testHandleSingleSecretCallbackEmptySecretPrivateKey() {
 
         System.setProperty("key.password", "true");
-
         when(singleSecretCallback.getId()).thenReturn("identity.key.password");
-
         Throwable exception = assertThrows(
                 AWSVaultRuntimeException.class,
                 () -> awsSecretCallbackHandler.handleSingleSecretCallback(singleSecretCallback)
         );
+
         Assert.assertEquals(
                 exception.getMessage(),
                 "Error in retrieving " + IDENTITY_KEY_PASSWORD_ALIAS + " property."

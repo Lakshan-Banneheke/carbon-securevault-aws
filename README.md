@@ -2,7 +2,7 @@
 
 #### This extension is to facilitate the integration of AWS Secrets Manager as a Secure Vault for secret storage within the WSO2 Identity Server.
 
-***Note: This extension is compatible with WSO2 Identity Server 5.12.0 onwards.***
+***Note: This extension is compatible with WSO2 Identity Server 6.0.0 onwards.***
 
 ## Setting up
 

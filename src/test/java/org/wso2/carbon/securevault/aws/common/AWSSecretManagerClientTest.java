@@ -114,11 +114,11 @@ public class AWSSecretManagerClientTest extends PowerMockTestCase {
     public void testGetAWSRegionNegativeInvalid() {
 
         when(AWSVaultUtils.getProperty(properties, AWS_REGION)).thenReturn("Invalid value");
-
         Throwable exception = assertThrows(
                 AWSVaultRuntimeException.class,
                 () -> Whitebox.invokeMethod(AWSSecretManagerClient.class, "getAWSRegion", properties)
         );
+
         Assert.assertEquals(
                 exception.getMessage(), "AWS Region specified is invalid. Cannot build AWS Secrets Client!");
     }
@@ -127,11 +127,11 @@ public class AWSSecretManagerClientTest extends PowerMockTestCase {
     public void testGetAWSRegionNegativeEmpty() {
 
         when(AWSVaultUtils.getProperty(properties, AWS_REGION)).thenReturn(null);
-
         Throwable exception = assertThrows(
                 AWSVaultRuntimeException.class,
                 () -> Whitebox.invokeMethod(AWSSecretManagerClient.class, "getAWSRegion", properties)
         );
+
         Assert.assertEquals(
                 exception.getMessage(), "AWS Region has not been specified. Cannot build AWS Secrets Client!");
     }
@@ -146,6 +146,7 @@ public class AWSSecretManagerClientTest extends PowerMockTestCase {
                 "getCredentialProviderChain", properties);
 
         String[] credentialProvidersArray = credentialProviders.split(",");
+
         for (String credentialProvider : credentialProvidersArray) {
             assertThat(awsCredentialsProvider.toString(), containsString(credentialProvider));
         }

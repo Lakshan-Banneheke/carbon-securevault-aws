@@ -330,8 +330,8 @@ public class AWSSecretRepository implements SecretRepository {
      */
     private static class SecretReference {
 
-        private String name;
-        private String version;
+        private final String name;
+        private final String version;
 
         SecretReference(String name, String version) {
 
